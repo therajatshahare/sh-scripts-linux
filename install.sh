@@ -15,7 +15,7 @@ BRANCH="main"
 
 BASE_RAW="https://raw.githubusercontent.com/$REPO_USER/$REPO_NAME/$BRANCH"
 
-# Target directory (Linux standard)
+# Target directory
 TARGET_DIR="$HOME/.local/bin"
 
 # Script list
@@ -63,13 +63,11 @@ for script in "${SCRIPTS[@]}"; do
 done
 
 # ===============================
-# ADD TO PATH (if needed)
+# ADD TO PATH
 # ===============================
 if [[ ":$PATH:" != *":$TARGET_DIR:"* ]]; then
     echo ""
     echo "Adding $TARGET_DIR to PATH..."
-
-    SHELL_CONFIG=""
 
     if [ -n "$ZSH_VERSION" ]; then
         SHELL_CONFIG="$HOME/.zshrc"
@@ -94,6 +92,24 @@ fi
 echo ""
 echo "Installing dependencies..."
 
+# Detect package manager
+if command -v apt >/dev/null 2>&1; then
+    PM="apt"
+    sudo apt update
+elif command -v dnf >/dev/null 2>&1; then
+    PM="dnf"
+elif command -v pacman >/dev/null 2>&1; then
+    PM="pacman"
+elif command -v zypper >/dev/null 2>&1; then
+    PM="zypper"
+elif command -v apk >/dev/null 2>&1; then
+    PM="apk"
+else
+    echo "⚠ Unsupported package manager."
+    PM=""
+fi
+
+# Install system packages
 install_pkg() {
     if command -v "$1" >/dev/null 2>&1; then
         echo "$1 already installed"
@@ -109,36 +125,50 @@ install_pkg() {
     esac
 }
 
-# Detect package manager
-if command -v apt >/dev/null 2>&1; then
-    PM="apt"
-    sudo apt update
-elif command -v dnf >/dev/null 2>&1; then
-    PM="dnf"
-elif command -v pacman >/dev/null 2>&1; then
-    PM="pacman"
-elif command -v zypper >/dev/null 2>&1; then
-    PM="zypper"
-elif command -v apk >/dev/null 2>&1; then
-    PM="apk"
-else
-    echo "⚠ Unsupported package manager. Install dependencies manually."
-    PM=""
-fi
-
-# Install core tools
 if [ -n "$PM" ]; then
-    install_pkg yt-dlp yt-dlp
     install_pkg ffmpeg ffmpeg
     install_pkg aria2c aria2
     install_pkg python3 python3
+    install_pkg pipx pipx
 fi
 
-# Python packages
+# Ensure pipx PATH
+if command -v pipx >/dev/null 2>&1; then
+    pipx ensurepath >/dev/null 2>&1 || true
+fi
+
+# -------------------------------
+# Install yt-dlp (LATEST)
+# -------------------------------
+echo ""
+echo "Installing yt-dlp (latest)..."
+
+if command -v pipx >/dev/null 2>&1; then
+    pipx install yt-dlp >/dev/null 2>&1 || pipx upgrade yt-dlp
+else
+    pip3 install --user -U yt-dlp
+fi
+
+# -------------------------------
+# Install instaloader (LATEST)
+# -------------------------------
+echo ""
+echo "Installing instaloader (latest)..."
+
+if command -v pipx >/dev/null 2>&1; then
+    pipx install instaloader >/dev/null 2>&1 || pipx upgrade instaloader
+else
+    pip3 install --user -U instaloader
+fi
+
+# -------------------------------
+# Install Python libraries
+# -------------------------------
 echo ""
 echo "Installing Python packages..."
+
 pip3 install --user --upgrade pip >/dev/null 2>&1 || true
-pip3 install --user lyricsgenius instaloader >/dev/null 2>&1 || true
+pip3 install --user lyricsgenius >/dev/null 2>&1 || true
 
 # ===============================
 # DONE
