@@ -1,0 +1,19 @@
+#!/bin/bash
+
+echo "Updating Cmd-Scripts Toolkit..."
+
+REPO_USER="therajatshahare"
+REPO_NAME="sh-scripts-linux"
+BRANCH="main"
+
+INSTALL_URL="https://raw.githubusercontent.com/$REPO_USER/$REPO_NAME/$BRANCH/install.sh"
+
+# Download and run latest installer
+if curl -fsSL "$INSTALL_URL" | bash; then
+    echo ""
+    echo "✅ Toolkit updated successfully"
+else
+    echo ""
+    echo "❌ Update failed"
+    exit 1
+fi
