@@ -35,6 +35,7 @@ exifpic
 folders
 insta
 toolkit-help
+update-scripts
 lyrics.py
 )
 
