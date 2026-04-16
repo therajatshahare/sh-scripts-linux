@@ -1,0 +1,80 @@
+#!/bin/bash
+
+echo "Uninstalling Cmd-Scripts Toolkit..."
+
+TARGET_DIR="$HOME/.local/bin"
+
+SCRIPTS=(
+ytvideo
+vytvideo
+ytaudio
+showmeta
+showlyrics
+showformat
+hide
+unhide
+update
+upgrade
+aria
+exifpic
+folders
+insta
+toolkit-help
+update-scripts
+toolkit-version
+version
+lyrics.py
+)
+
+# ===============================
+# Remove scripts
+# ===============================
+echo ""
+echo "Removing scripts..."
+
+for script in "${SCRIPTS[@]}"; do
+    FILE="$TARGET_DIR/$script"
+
+    if [ -f "$FILE" ]; then
+        rm -f "$FILE"
+        echo "✔ Removed $script"
+    fi
+done
+
+# ===============================
+# Remove PATH entry
+# ===============================
+echo ""
+echo "Cleaning PATH configuration..."
+
+for CONFIG in "$HOME/.bashrc" "$HOME/.zshrc"; do
+    if [ -f "$CONFIG" ]; then
+        sed -i '/# Cmd-Scripts PATH/d' "$CONFIG"
+        sed -i '\|.local/bin|d' "$CONFIG"
+    fi
+done
+
+echo "✔ PATH cleaned"
+
+# ===============================
+# Remove pipx packages (optional)
+# ===============================
+echo ""
+read -p "Remove yt-dlp and instaloader? (y/n): " confirm
+
+if [ "$confirm" = "y" ]; then
+    if command -v pipx >/dev/null 2>&1; then
+        pipx uninstall yt-dlp >/dev/null 2>&1 || true
+        pipx uninstall instaloader >/dev/null 2>&1 || true
+        echo "✔ Removed pipx packages"
+    fi
+fi
+
+# ===============================
+# Done
+# ===============================
+echo ""
+echo "✅ Cmd-Scripts Toolkit uninstalled"
+echo ""
+echo "Restart terminal or run:"
+echo "  source ~/.bashrc"
