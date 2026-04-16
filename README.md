@@ -149,6 +149,38 @@ sh-scripts-linux/
 
 ---
 
+### 🔁 Toolkit Management
+
+#### Update Toolkit
+
+Update all scripts to the latest version:
+
+```bash
+update-scripts
+```
+
+- Downloads the latest version from GitHub
+- Reinstalls all scripts
+- Updates dependencies if needed
+
+---
+
+#### Uninstall Toolkit
+
+Remove all installed scripts and clean configuration:
+
+```bash
+toolkit-uninstall
+```
+
+- Removes scripts from `~/.local/bin`
+- Cleans PATH entries from shell config
+- Optionally removes:
+  - yt-dlp
+  - instaloader
+
+---
+
 ## 🧠 Design Philosophy
 
 - One-command setup
