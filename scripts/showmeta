@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# ===============================
+# Argument
+# ===============================
+FILE="$1"
+
+# ===============================
+# Validate input
+# ===============================
+if [ -z "$FILE" ]; then
+    echo "Usage: showmeta <file>"
+    exit 1
+fi
+
+if [ ! -f "$FILE" ]; then
+    echo "File not found: $FILE"
+    exit 1
+fi
+
+# ===============================
+# Check dependency
+# ===============================
+if ! command -v ffmpeg >/dev/null 2>&1; then
+    echo "ffmpeg not found. Install it using:"
+    echo "  sudo apt install ffmpeg"
+    exit 1
+fi
+
+echo "Metadata for: $FILE"
+echo "--------------------------"
+
+# ===============================
+# Get metadata
+# ===============================
+output=$(ffmpeg -hide_banner -i "$FILE" 2>&1)
+
+# ===============================
+# Filter metadata lines
+# ===============================
+meta=$(echo "$output" | grep -E '^[[:space:]]+[a-zA-Z0-9_]+[[:space:]]*:' | grep -v "Stream")
+
+# ===============================
+# Output
+# ===============================
+if [ -n "$meta" ]; then
+    echo "$meta"
+else
+    echo "No metadata found."
+fi

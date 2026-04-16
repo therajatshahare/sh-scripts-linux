@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# ===============================
+# Check dependency
+# ===============================
+if ! command -v aria2c >/dev/null 2>&1; then
+    echo "aria2c not found. Install it using:"
+    echo "  sudo apt install aria2"
+    exit 1
+fi
+
+# ===============================
+# Usage check
+# ===============================
+if [ $# -eq 0 ]; then
+    echo "Usage: aria <url> [options]"
+    exit 1
+fi
+
+# ===============================
+# Execute aria2c
+# ===============================
+aria2c -x 16 -s 16 -k 1M "$@"

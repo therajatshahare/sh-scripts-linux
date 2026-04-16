@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# ===============================
+# Check tools
+# ===============================
+if ! command -v yt-dlp >/dev/null 2>&1; then
+    echo "yt-dlp not found."
+    exit 1
+fi
+
+if ! command -v ffmpeg >/dev/null 2>&1; then
+    echo "ffmpeg not found."
+    exit 1
+fi
+
+# ===============================
+# Download and extract audio
+# ===============================
+yt-dlp \
+    --extract-audio \
+    --audio-format flac \
+    --audio-quality 0 \
+    -f bestaudio \
+    --add-metadata \
+    --embed-thumbnail \
+    --postprocessor-args "ffmpeg:-compression_level 12" \
+    -o "%(title)s.%(ext)s" \
+    "$@"
+
+# ===============================
+# Fallback: convert leftover webm
+# ===============================
+for file in *.webm; do
+    [ -e "$file" ] || continue
+
+    output="${file%.webm}.flac"
+
+    ffmpeg -i "$file" -compression_level 12 -y "$output"
+    rm "$file"
+done
+
+# ===============================
+# Detect newest FLAC file
+# ===============================
+latest=$(ls -t *.flac 2>/dev/null | head -n 1)
+
+if [ -z "$latest" ]; then
+    echo "No FLAC file found."
+    exit 1
+fi
+
+title="${latest%.flac}"
+
+# ===============================
+# Ask for lyrics
+# ===============================
+read -p "Do you want to add lyrics from Genius? (y/n): " answer
+
+if [ "$answer" != "y" ]; then
+    exit 0
+fi
+
+echo "Fetching lyrics for: $title"
+
+# ===============================
+# Run Python script
+# ===============================
+scriptDir="$(dirname "$0")"
+python3 "$scriptDir/lyrics.py" "$title" "$latest"
+
+echo "Lyrics embedded into $latest"

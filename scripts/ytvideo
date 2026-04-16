@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# ===============================
+# Argument Handling
+# ===============================
+res="$1"
+filename="$2"
+url="$3"
+
+# Shift logic (like PowerShell)
+if [ -z "$url" ]; then
+    url="$filename"
+    filename="$res"
+    res=""
+fi
+
+if [ -z "$filename" ] || [ -z "$url" ]; then
+    echo 'Usage: ytvideo [resolution] "filename" "URL"'
+    exit 1
+fi
+
+# ===============================
+# Check yt-dlp
+# ===============================
+if ! command -v yt-dlp >/dev/null 2>&1; then
+    echo "yt-dlp not found. Please install it."
+    exit 1
+fi
+
+# ===============================
+# Sanitize filename
+# ===============================
+filename=$(echo "$filename" | sed 's/[\\/:*?"<>|]/_/g')
+
+# ===============================
+# Output directory
+# ===============================
+outputDir="$HOME/YT-DLP"
+mkdir -p "$outputDir"
+
+# ===============================
+# Format selection
+# ===============================
+format="bestvideo+bestaudio/best"
+
+case "${res,,}" in
+    "4k")
+        format="bestvideo[height<=2160][height>=1440]+bestaudio/best"
+        ;;
+    "2k")
+        format="bestvideo[height<=1440][height>=1080]+bestaudio/best"
+        ;;
+    "1080p")
+        format="bestvideo[height<=1080][height>=720]+bestaudio/best"
+        ;;
+    "720p")
+        format="bestvideo[height<=720][height>=480]+bestaudio/best"
+        ;;
+    "480p")
+        format="bestvideo[height<=480][height>=360]+bestaudio/best"
+        ;;
+    "360p")
+        format="bestvideo[height<=360][height>=240]+bestaudio/best"
+        ;;
+    "240p")
+        format="bestvideo[height<=240]+bestaudio/best"
+        ;;
+esac
+
+# ===============================
+# Subtitle detection
+# ===============================
+subs=$(yt-dlp --list-subs "$url" 2>/dev/null)
+
+hasRealSub=false
+
+if echo "$subs" | grep -q "^en " && ! echo "$subs" | grep -qi "auto-generated"; then
+    hasRealSub=true
+fi
+
+# ===============================
+# Download
+# ===============================
+outputFile="$outputDir/$filename.%(ext)s"
+
+if [ "$hasRealSub" = true ]; then
+    echo "Real English subtitles found. Downloading with subtitles..."
+
+    yt-dlp -f "$format" \
+        --merge-output-format mkv \
+        --sub-lang en \
+        --write-subs \
+        --embed-subs \
+        -o "$outputFile" \
+        "$url"
+else
+    echo "No real English subtitles found. Downloading without subtitles..."
+
+    yt-dlp -f "$format" \
+        --merge-output-format mkv \
+        -o "$outputFile" \
+        "$url"
+fi
+
+# ===============================
+# Error handling
+# ===============================
+if [ $? -ne 0 ]; then
+    echo "❌ Download failed"
+    exit 1
+fi
+
+# ===============================
+# Logging
+# ===============================
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Downloading $url as $filename.mkv" >> "$HOME/yt-dlp-log.txt"
+
+echo "✅ Download completed"

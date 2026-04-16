@@ -1,0 +1,65 @@
+#!/bin/bash
+
+# ===============================
+# Config
+# ===============================
+LOGIN_USER="aroallfather"
+
+# ===============================
+# Arguments
+# ===============================
+USERNAME="$1"
+MODE="${2:-full}"
+
+# ===============================
+# Validation
+# ===============================
+if [ -z "$USERNAME" ]; then
+    echo "Usage: insta <username> [full|update]"
+    exit 1
+fi
+
+if [[ "$MODE" != "full" && "$MODE" != "update" ]]; then
+    echo "Invalid mode: $MODE"
+    echo "Allowed values: full | update"
+    exit 1
+fi
+
+# ===============================
+# Check dependency
+# ===============================
+if ! command -v instaloader >/dev/null 2>&1; then
+    echo "instaloader not found. Install with:"
+    echo "  pip install instaloader"
+    exit 1
+fi
+
+# ===============================
+# Info (matches PowerShell version)
+# ===============================
+echo "Processing profile: $USERNAME"
+echo "Download location: $(pwd)"
+
+# ===============================
+# Execute based on mode
+# ===============================
+if [ "$MODE" = "update" ]; then
+    echo "Running FAST UPDATE mode..."
+    instaloader --login "$LOGIN_USER" --fast-update "$USERNAME"
+else
+    echo "Running FULL DOWNLOAD mode..."
+    instaloader --login "$LOGIN_USER" "$USERNAME"
+fi
+
+# ===============================
+# Result handling
+# ===============================
+if [ $? -eq 0 ]; then
+    echo "Operation completed successfully!"
+else
+    echo "Operation failed. Check credentials or connection."
+    exit 1
+fi
+
+echo ""
+exit 0

@@ -1,0 +1,164 @@
+#!/bin/bash
+
+command="$1"
+
+echo ""
+
+# ===============================
+# MAIN HELP (no argument)
+# ===============================
+if [ -z "$command" ]; then
+
+    echo "=== Cmd-Scripts Toolkit Help ==="
+
+    echo ""
+    echo "🎥 Media Commands"
+    echo "  ytvideo    → Download YouTube video"
+    echo "  vytvideo   → Download vertical video"
+    echo "  ytaudio    → Extract audio"
+
+    echo ""
+    echo "🎵 Metadata & Lyrics"
+    echo "  showmeta     → Show metadata"
+    echo "  showformat   → Show formats"
+    echo "  showlyrics   → Fetch lyrics"
+
+    echo ""
+    echo "📁 File Utilities"
+    echo "  folders   → List folders"
+    echo "  hide      → Hide file"
+    echo "  unhide    → Unhide file"
+    echo "  exifpic   → Modify EXIF data"
+
+    echo ""
+    echo "⚡ System Tools"
+    echo "  update    → Update system"
+    echo "  upgrade   → Upgrade system"
+    echo "  aria      → Downloader"
+
+    echo ""
+    echo "📸 Instagram"
+    echo "  insta     → Profile downloader"
+
+    echo ""
+    echo "🔁 Toolkit"
+    echo "  toolkit-help <command> → Detailed usage"
+
+    echo ""
+    return
+fi
+
+# ===============================
+# COMMAND-SPECIFIC HELP
+# ===============================
+case "${command,,}" in
+
+    ytvideo)
+        echo "ytvideo [res] \"name\" \"url\""
+        echo "Download YouTube video (≤4K)"
+        echo ""
+        echo "Example:"
+        echo "  ytvideo 2k \"video\" \"https://youtu.be/...\""
+        echo ""
+        echo "Resolutions:"
+        echo "  4k, 2k, 1080p, 720p, 480p, 360p, 240p"
+        echo ""
+        echo "Notes:"
+        echo "  • No resolution = best/original quality"
+        echo "  • Output format: MKV"
+        ;;
+
+    vytvideo)
+        echo "vytvideo [res] \"name\" \"url\""
+        echo "Download vertical videos (Reels/Shorts)"
+        echo ""
+        echo "Example:"
+        echo "  vytvideo 2k \"video\" \"https://youtu.be/...\""
+        echo ""
+        echo "Notes:"
+        echo "  • Uses same resolution options as ytvideo"
+        echo "  • Output format: MKV"
+        ;;
+
+    ytaudio)
+        echo "ytaudio \"name\" \"url\""
+        echo "Extract audio in FLAC format"
+        echo ""
+        echo "Examples:"
+        echo "  ytaudio \"song\" \"https://youtu.be/...\""
+        echo "  ytaudio \"https://youtu.be/...\""
+        echo ""
+        echo "Notes:"
+        echo "  • Best quality audio (FLAC)"
+        echo "  • Metadata and thumbnail embedded"
+        ;;
+
+    exifpic)
+        echo "exifpic \"YYYY:MM:DD HH:MM\" [file]"
+        echo "Modify EXIF date/time"
+        echo ""
+        echo "Examples:"
+        echo "  exifpic \"2024:01:01 10:00\""
+        echo "    → Apply to all JPG/PNG in current folder"
+        echo ""
+        echo "  exifpic \"2024:01:01 10:00\" \"image.jpg\""
+        echo "    → Apply to specific file"
+        echo ""
+        echo "Notes:"
+        echo "  • Format: YYYY:MM:DD HH:MM"
+        echo "  • Overwrites original metadata"
+        ;;
+
+    insta)
+        echo "insta <user> [full|update]"
+        echo "Download Instagram profile posts"
+        echo ""
+        echo "Examples:"
+        echo "  insta username"
+        echo "    → Full download (default)"
+        echo ""
+        echo "  insta username update"
+        echo "    → Download only new posts"
+        echo ""
+        echo "Modes:"
+        echo "  full    → Download all posts"
+        echo "  update  → Download only new posts (fast)"
+        echo ""
+        echo "Notes:"
+        echo "  • Requires login (saved session)"
+        echo "  • Files saved in current directory"
+        ;;
+
+    showmeta)
+        echo "showmeta \"file\""
+        echo "Display full media metadata"
+        echo ""
+        echo "Example:"
+        echo "  showmeta \"video.mkv\""
+        ;;
+
+    showformat)
+        echo "showformat \"url\""
+        echo "Display format and stream details (YouTube/online sources)"
+        echo ""
+        echo "Examples:"
+        echo "  showformat \"https://youtu.be/...\""
+        echo "  Only supports URLs (Not local files)"
+        echo "  For local files use showmeta"
+        ;;
+
+    showlyrics)
+        echo "showlyrics \"file\""
+        echo "Fetch and embed lyrics into audio file"
+        echo ""
+        echo "Example:"
+        echo "  showlyrics \"song.flac\""
+        ;;
+
+    *)
+        echo "Unknown command: $command"
+        echo "Use 'toolkit-help' to see available commands"
+        ;;
+esac
+
+echo ""

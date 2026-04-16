@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# ===============================
+# Argument
+# ===============================
+FILE="$1"
+
+# ===============================
+# Validate input
+# ===============================
+if [ -z "$FILE" ]; then
+    echo "Usage: showlyrics <file>"
+    exit 1
+fi
+
+if [ ! -f "$FILE" ]; then
+    echo "File not found: $FILE"
+    exit 1
+fi
+
+# ===============================
+# Check dependency
+# ===============================
+if ! command -v ffprobe >/dev/null 2>&1; then
+    echo "ffprobe not found. Install ffmpeg:"
+    echo "  sudo apt install ffmpeg"
+    exit 1
+fi
+
+# ===============================
+# Extract lyrics
+# ===============================
+lyrics=$(ffprobe -v error \
+    -show_entries format_tags=lyrics \
+    -of default=nw=1:nk=1 \
+    "$FILE" 2>/dev/null)
+
+# ===============================
+# Output
+# ===============================
+if [ -n "$lyrics" ] && [ -n "$(echo "$lyrics" | tr -d '[:space:]')" ]; then
+    echo "Lyrics:"
+    echo "$lyrics"
+else
+    echo "No embedded lyrics found."
+fi

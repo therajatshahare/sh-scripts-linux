@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# ===============================
+# Argument
+# ===============================
+FILE="$1"
+
+# ===============================
+# Validate input
+# ===============================
+if [ -z "$FILE" ]; then
+    echo "Usage: hide <file>"
+    exit 1
+fi
+
+if [ ! -e "$FILE" ]; then
+    echo "File not found: $FILE"
+    exit 1
+fi
+
+# ===============================
+# Get filename
+# ===============================
+BASENAME="$(basename -- "$FILE")"
+DIRNAME="$(dirname -- "$FILE")"
+
+# If already hidden
+if [[ "$BASENAME" == .* ]]; then
+    echo "File is already hidden."
+    exit 0
+fi
+
+# ===============================
+# Rename to hidden
+# ===============================
+HIDDEN_FILE="$DIRNAME/.$BASENAME"
+mv "$FILE" "$HIDDEN_FILE"
+
+# ===============================
+# Make read-only
+# ===============================
+chmod a-w "$HIDDEN_FILE"
+
+echo "File '$FILE' is now hidden (dotfile + read-only)."

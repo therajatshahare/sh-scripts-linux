@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "Listing all folders (including hidden ones) from the current directory..."
+
+find . -type d

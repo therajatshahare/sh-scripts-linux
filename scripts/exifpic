@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# ===============================
+# Arguments
+# ===============================
+DATETIME="$1"
+FILE="$2"
+
+# ===============================
+# Validate input
+# ===============================
+if [ -z "$DATETIME" ]; then
+    echo 'Usage: exifpic "YYYY:MM:DD HH:MM"'
+    echo 'Or:    exifpic "YYYY:MM:DD HH:MM" "filename.jpg"'
+    exit 1
+fi
+
+# ===============================
+# Check dependency
+# ===============================
+if ! command -v exiftool >/dev/null 2>&1; then
+    echo "exiftool not found. Install it using:"
+    echo "  sudo apt install libimage-exiftool-perl"
+    exit 1
+fi
+
+# ===============================
+# Single file mode
+# ===============================
+if [ -n "$FILE" ]; then
+    if [ ! -f "$FILE" ]; then
+        echo "File not found: $FILE"
+        exit 1
+    fi
+
+    echo "Updating timestamps for: $FILE"
+
+    exiftool -overwrite_original \
+        "-FileModifyDate=$DATETIME" \
+        "-FileCreateDate=$DATETIME" \
+        "$FILE"
+
+    echo "✅ Done"
+    exit 0
+fi
+
+# ===============================
+# Batch mode (all images)
+# ===============================
+shopt -s nullglob
+files=( *.jpg *.jpeg *.png )
+
+if [ ${#files[@]} -eq 0 ]; then
+    echo "No JPG/PNG files found in current directory."
+    exit 1
+fi
+
+echo "Updating timestamps for all images..."
+
+for file in "${files[@]}"; do
+    exiftool -overwrite_original \
+        "-FileModifyDate=$DATETIME" \
+        "-FileCreateDate=$DATETIME" \
+        "$file"
+done
+
+echo "✅ Done"

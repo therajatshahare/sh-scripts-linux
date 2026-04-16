@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# ===============================
+# Argument
+# ===============================
+FILE="$1"
+
+# ===============================
+# Validate input
+# ===============================
+if [ -z "$FILE" ]; then
+    echo "Usage: unhide <file>"
+    exit 1
+fi
+
+if [ ! -e "$FILE" ]; then
+    echo "File not found: $FILE"
+    exit 1
+fi
+
+# ===============================
+# Extract name and path
+# ===============================
+BASENAME="$(basename -- "$FILE")"
+DIRNAME="$(dirname -- "$FILE")"
+
+# Check if file is hidden
+if [[ "$BASENAME" != .* ]]; then
+    echo "File is already visible."
+    exit 0
+fi
+
+# ===============================
+# Remove dot (unhide)
+# ===============================
+VISIBLE_NAME="${BASENAME#.}"
+NEW_FILE="$DIRNAME/$VISIBLE_NAME"
+
+mv "$FILE" "$NEW_FILE"
+
+# ===============================
+# Restore write permission
+# ===============================
+chmod u+w "$NEW_FILE"
+
+echo "File '$FILE' is now visible as '$VISIBLE_NAME'."

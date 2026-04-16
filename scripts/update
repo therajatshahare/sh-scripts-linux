@@ -1,0 +1,57 @@
+#!/bin/bash
+
+echo "Detecting package manager..."
+
+# ===============================
+# Detect package manager
+# ===============================
+if command -v apt >/dev/null 2>&1; then
+    PM="apt"
+elif command -v dnf >/dev/null 2>&1; then
+    PM="dnf"
+elif command -v pacman >/dev/null 2>&1; then
+    PM="pacman"
+elif command -v zypper >/dev/null 2>&1; then
+    PM="zypper"
+elif command -v apk >/dev/null 2>&1; then
+    PM="apk"
+else
+    echo "❌ Unsupported package manager."
+    exit 1
+fi
+
+echo "Using package manager: $PM"
+echo ""
+
+# ===============================
+# Run update
+# ===============================
+case "$PM" in
+    apt)
+        sudo apt update
+        ;;
+    dnf)
+        sudo dnf check-update
+        ;;
+    pacman)
+        sudo pacman -Sy
+        ;;
+    zypper)
+        sudo zypper refresh
+        ;;
+    apk)
+        sudo apk update
+        ;;
+esac
+
+# ===============================
+# Result
+# ===============================
+if [ $? -eq 0 ]; then
+    echo ""
+    echo "✅ System package list updated successfully"
+else
+    echo ""
+    echo "❌ Update failed"
+    exit 1
+fi
