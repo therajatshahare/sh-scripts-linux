@@ -36,6 +36,7 @@ folders
 insta
 toolkit-help
 update-scripts
+toolkit-uninstall
 lyrics.py
 )
 
