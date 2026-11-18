@@ -1,8 +1,6 @@
-# ⚙️ Cmd-Scripts Toolkit (Linux)
+# ⚙️ sh-scripts-linux toolkit
 
 A personal **Linux CLI toolkit** for everyday automation, media handling, and utilities — install everything with **one command**.
-
----
 
 ## 🚀 One-Line Install
 
@@ -10,100 +8,70 @@ A personal **Linux CLI toolkit** for everyday automation, media handling, and ut
 curl -fsSL https://raw.githubusercontent.com/therajatshahare/sh-scripts-linux/main/install.sh | bash
 ```
 
-> ⚠️ Restart your terminal or run `source ~/.bashrc` after installation.
-
----
+> ⚠️ Restart your terminal or run `source ~/.bashrc` (or `source ~/.zshrc`) after installation.
 
 ## 📂 What This Does
 
 - Installs all scripts to:
-
   ```
   ~/.local/bin
   ```
-
-- Makes scripts executable
-- Adds directory to PATH (if not already added)
-- Installs required dependencies:
-
-  - yt-dlp
-  - ffmpeg
-  - aria2
-  - python3
-  - instaloader
-  - lyricsgenius
-
----
+- Makes all scripts executable
+- Automatically adds the install directory to your shell `PATH` (if not already present)
+- Installs required system and Python dependencies:
+  - `yt-dlp`
+  - `ffmpeg`
+  - `aria2`
+  - `python3`
+  - `instaloader`
+  - `lyricsgenius`
+  - `exiftool`
+  - `gnupg`
 
 ## 🧰 Available Commands
 
 ### 🎥 Media / YouTube
-
 ```bash
-ytvideo
-vytvideo
-ytaudio
+ytvideo [res] [filename] <url>
+vytvideo [res] [filename] <url>
+hytvideo [res] [filename] <url>
+ytaudio <url>
 ```
-
----
 
 ### 🎵 Metadata / Lyrics
-
 ```bash
-showmeta
-showformat
-showlyrics
+showmeta <file>
+showformat <url>
+showlyrics <file>
 ```
 
----
-
-### 📁 File Utilities
-
+### 📁 File & Security Utilities
 ```bash
 folders
-hide
-unhide
-exifpic
+hide <file>
+unhide <file>
+exifpic <date> [file]
+encrypt <target> [encrypt/decrypt]
 ```
 
----
-
 ### ⚡ System Utilities
-
 ```bash
 update
 upgrade
-aria
+aria <url> [options]
 ```
 
----
-
 ### 📸 Instagram
-
 ```bash
 insta <username> full
 insta <username> update
 ```
 
----
-
 ### 📖 Help System
-
-Get help directly in terminal:
-
+Get help directly in the terminal:
 ```bash
 toolkit-help
 ```
-
-Command-specific help:
-
-```bash
-toolkit-help ytvideo
-toolkit-help insta
-toolkit-help exifpic
-```
-
----
 
 ## 🎵 Lyrics Setup (Required for lyrics features)
 
@@ -120,17 +88,18 @@ echo 'export GENIUS_TOKEN="your_token_here"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
----
-
 ## 📦 Project Structure
 
 ```
 sh-scripts-linux/
 │
+├── README.md
+├── LICENSE
 ├── install.sh
 └── scripts/
     ├── ytvideo
     ├── vytvideo
+    ├── hytvideo
     ├── ytaudio
     ├── showmeta
     ├── showlyrics
@@ -143,71 +112,52 @@ sh-scripts-linux/
     ├── exifpic
     ├── folders
     ├── insta
+    ├── encrypt
+    ├── insta_fallback.py
     ├── toolkit-help
     ├── update-scripts
     ├── toolkit-uninstall
     └── lyrics.py
 ```
 
----
-
 ### 🔁 Toolkit Management
 
 #### Update Toolkit
-
-Update all scripts to the latest version:
-
+Update all scripts to the latest version from GitHub:
 ```bash
 update-scripts
 ```
-
-- Downloads the latest version from GitHub
-- Reinstalls all scripts
-- Updates dependencies if needed
-
----
+- Pulls the latest version from GitHub
+- Reinstalls all scripts and updates permissions
 
 #### Uninstall Toolkit
-
-Remove all installed scripts and clean configuration:
-
+Remove all installed scripts and clean up configuration:
 ```bash
 toolkit-uninstall
 ```
-
 - Removes scripts from `~/.local/bin`
-- Cleans PATH entries from shell config
-- Optionally removes:
-  - yt-dlp
-  - instaloader
-
----
+- Cleans PATH entries from shell configuration files (`.bashrc` / `.zshrc`)
+- Optionally removes `yt-dlp` and `instaloader` packages installed via `pipx`
 
 ## 🧠 Design Philosophy
 
 - One-command setup
-- No root required (installs to user space)
-- Native Linux CLI design (no wrappers)
-- Modular and extensible
-- Minimal dependencies
-
----
+- No root required for scripts (installs to user space in `~/.local/bin`)
+- Native Linux CLI design (pure Bash/Python wrappers)
+- Modular, lightweight, and extensible
+- Minimal external friction
 
 ## ⚠️ Notes
 
-- Designed for Linux (Ubuntu, Fedora, Arch, etc.)
-- Works with bash and zsh
-- Some features depend on external tools (ffmpeg, yt-dlp, etc.)
-
----
+- Designed for Linux distributions (Ubuntu, Fedora, Arch, Alpine, openSUSE, etc.)
+- Fully compatible with both Bash and Zsh shells
+- Relies on standard external CLI tools (`ffmpeg`, `yt-dlp`, `aria2c`, `exiftool`, `gpg`)
 
 ## ⭐ Author
 
-Rajat Shahare  
-https://github.com/therajatshahare
-
----
+**Rajat Shahare**  
+[GitHub Profile](https://github.com/therajatshahare)
 
 ## 🛠️ License
 
-Personal toolkit — use freely and modify as needed.
+This project is licensed under the [MIT License](LICENSE).
