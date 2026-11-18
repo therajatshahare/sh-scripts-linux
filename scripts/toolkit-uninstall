@@ -1,9 +1,13 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "Uninstalling Cmd-Scripts Toolkit..."
+echo "=================================================="
+echo "     Uninstalling sh-scripts-linux toolkit"
+echo "=================================================="
 
 TARGET_DIR="$HOME/.local/bin"
 
+# Complete script array matching the installer
 SCRIPTS=(
 ytvideo
 vytvideo
@@ -19,10 +23,11 @@ aria
 exifpic
 folders
 insta
+encrypt
+insta_fallback.py
 toolkit-help
 update-scripts
-toolkit-version
-version
+toolkit-uninstall
 lyrics.py
 )
 
@@ -30,14 +35,14 @@ lyrics.py
 # Remove scripts
 # ===============================
 echo ""
-echo "Removing scripts..."
+echo "Removing scripts from $TARGET_DIR..."
 
 for script in "${SCRIPTS[@]}"; do
     FILE="$TARGET_DIR/$script"
 
     if [ -f "$FILE" ]; then
         rm -f "$FILE"
-        echo "✔ Removed $script"
+        echo "  ✔ Removed $script"
     fi
 done
 
@@ -49,24 +54,28 @@ echo "Cleaning PATH configuration..."
 
 for CONFIG in "$HOME/.bashrc" "$HOME/.zshrc"; do
     if [ -f "$CONFIG" ]; then
+        # Remove both current and legacy signatures
         sed -i '/# Cmd-Scripts PATH/d' "$CONFIG"
+        sed -i '/# sh-scripts-linux toolkit PATH/d' "$CONFIG"
         sed -i '\|.local/bin|d' "$CONFIG"
     fi
 done
 
-echo "✔ PATH cleaned"
+echo "  ✔ PATH configuration cleaned"
 
 # ===============================
 # Remove pipx packages (optional)
 # ===============================
 echo ""
-read -p "Remove yt-dlp and instaloader? (y/n): " confirm
+read -r -p "Do you want to remove yt-dlp and instaloader installed via pipx? (y/n): " confirm
 
-if [ "$confirm" = "y" ]; then
+if [[ "$confirm" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     if command -v pipx >/dev/null 2>&1; then
         pipx uninstall yt-dlp >/dev/null 2>&1 || true
         pipx uninstall instaloader >/dev/null 2>&1 || true
-        echo "✔ Removed pipx packages"
+        echo "  ✔ Removed pipx packages"
+    else
+        echo "  ⚠ pipx not found, skipping package removal."
     fi
 fi
 
@@ -74,7 +83,9 @@ fi
 # Done
 # ===============================
 echo ""
-echo "✅ Cmd-Scripts Toolkit uninstalled"
+echo "=================================================="
+echo "✅ sh-scripts-linux toolkit uninstalled successfully"
+echo "=================================================="
 echo ""
-echo "Restart terminal or run:"
-echo "  source ~/.bashrc"
+echo "Restart your terminal or run:"
+echo "  source ~/.bashrc  (or ~/.zshrc)"
