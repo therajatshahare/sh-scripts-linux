@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TOOLKIT_VERSION="1.1.0"
+TOOLKIT_VERSION="1.1.1"
 echo "sh-scripts-linux toolkit Version: $TOOLKIT_VERSION"
 echo "=== sh-scripts-linux Setup Starting ==="
 
@@ -116,16 +116,6 @@ fi
 EOF
         echo "✔ Configured Zsh command autosuggestions"
     fi
-fi
-
-# Configure 'thefuck' command auto-correction alias
-if ! grep -q "eval \$(thefuck --alias)" "$SHELL_CONFIG"; then
-    cat << 'EOF' >> "$SHELL_CONFIG"
-
-# sh-scripts-linux: Command auto-correction (thefuck)
-eval $(thefuck --alias)
-EOF
-    echo "✔ Configured command auto-correction alias ('fuck')"
 fi
 
 # ===============================
@@ -255,18 +245,6 @@ if command -v pipx >/dev/null 2>&1; then
     pipx install instaloader >/dev/null 2>&1 || pipx upgrade instaloader || true
 else
     pip3 install --user -U instaloader >/dev/null 2>&1 || true
-fi
-
-# -------------------------------
-# Install 'thefuck' (Command Auto-correct)
-# -------------------------------
-echo ""
-echo "Installing/updating thefuck..."
-
-if command -v pipx >/dev/null 2>&1; then
-    pipx install thefuck >/dev/null 2>&1 || pipx upgrade thefuck || true
-else
-    pip3 install --user -U thefuck >/dev/null 2>&1 || true
 fi
 
 # -------------------------------
