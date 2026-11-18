@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import sys
 import lyricsgenius
 import subprocess
@@ -53,7 +54,7 @@ final_lyrics = "\n".join(filtered_lines).replace('"', "'").replace("\r", "")
 lyrics_file = "genius_lyrics.txt"
 temp_file = filepath + ".tmp"
 
-# Save lyrics
+# Save lyrics with explicit UTF-8 encoding
 with open(lyrics_file, "w", encoding="utf-8") as f:
     f.write(final_lyrics)
 
