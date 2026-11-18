@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TOOLKIT_VERSION="1.0.0"
+TOOLKIT_VERSION="1.1.0"
 echo "sh-scripts-linux toolkit Version: $TOOLKIT_VERSION"
 echo "=== sh-scripts-linux Setup Starting ==="
 
@@ -66,34 +66,73 @@ for script in "${SCRIPTS[@]}"; do
 done
 
 # ===============================
-# ADD TO PATH (ROBUST SHELL DETECTION)
+# ADD TO PATH & ENHANCE SHELL CONFIG
 # ===============================
+echo ""
+echo "Configuring shell environment..."
+
+if [[ "$SHELL" == */zsh ]]; then
+    SHELL_CONFIG="$HOME/.zshrc"
+else
+    SHELL_CONFIG="$HOME/.bashrc"
+fi
+
+# Ensure PATH is updated
 if [[ ":$PATH:" != *":$TARGET_DIR:"* ]]; then
-    echo ""
-    echo "Adding $TARGET_DIR to PATH..."
-
-    if [[ "$SHELL" == */zsh ]]; then
-        SHELL_CONFIG="$HOME/.zshrc"
-    else
-        SHELL_CONFIG="$HOME/.bashrc"
-    fi
-
     echo "" >> "$SHELL_CONFIG"
     echo "# sh-scripts-linux toolkit PATH" >> "$SHELL_CONFIG"
     echo "export PATH=\"$TARGET_DIR:\$PATH\"" >> "$SHELL_CONFIG"
-
     echo "✔ PATH updated in $SHELL_CONFIG"
-    echo "👉 Run: source $SHELL_CONFIG"
 else
-    echo ""
     echo "✔ PATH already configured"
+fi
+
+# Configure shell-specific productivity enhancements
+if [[ "$SHELL_CONFIG" == */.bashrc ]]; then
+    if ! grep -q "history-search-backward" "$SHELL_CONFIG"; then
+        cat << 'EOF' >> "$SHELL_CONFIG"
+
+# sh-scripts-linux: Smart History Search (Type prefix and use Up/Down arrows)
+bind '"\e[A": history-search-backward'
+bind '"\e[B": history-search-forward'
+EOF
+        echo "✔ Configured Bash smart history search"
+    fi
+elif [[ "$SHELL_CONFIG" == */.zshrc ]]; then
+    # Setup zsh-autosuggestions
+    AUTOSUGGEST_DIR="$HOME/.zsh/zsh-autosuggestions"
+    if [ ! -d "$AUTOSUGGEST_DIR" ]; then
+        echo "[*] Installing zsh-autosuggestions..."
+        git clone https://github.com/zsh-users/zsh-autosuggestions.git "$AUTOSUGGEST_DIR" >/dev/null 2>&1 || true
+    fi
+    
+    if ! grep -q "zsh-autosuggestions.zsh" "$SHELL_CONFIG"; then
+        cat << 'EOF' >> "$SHELL_CONFIG"
+
+# sh-scripts-linux: Zsh Autosuggestions
+if [ -f "$HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh" ]; then
+    source "$HOME/.zsh/zsh-autosuggestions/zsh-autosuggestions.zsh"
+fi
+EOF
+        echo "✔ Configured Zsh command autosuggestions"
+    fi
+fi
+
+# Configure 'thefuck' command auto-correction alias
+if ! grep -q "eval \$(thefuck --alias)" "$SHELL_CONFIG"; then
+    cat << 'EOF' >> "$SHELL_CONFIG"
+
+# sh-scripts-linux: Command auto-correction (thefuck)
+eval $(thefuck --alias)
+EOF
+    echo "✔ Configured command auto-correction alias ('fuck')"
 fi
 
 # ===============================
 # INSTALL SYSTEM DEPENDENCIES
 # ===============================
 echo ""
-echo "Detecting package manager and installing dependencies..."
+echo "Detecting package manager and installing system dependencies..."
 
 if command -v apt >/dev/null 2>&1; then
     PM="apt"
@@ -139,6 +178,8 @@ if [ -n "$PM" ]; then
             install_pkg exiftool libimage-exiftool-perl
             install_pkg gpg gnupg
             install_pkg curl curl
+            install_pkg fastfetch fastfetch
+            install_pkg git git
             ;;
         dnf)
             install_pkg ffmpeg ffmpeg
@@ -148,6 +189,8 @@ if [ -n "$PM" ]; then
             install_pkg exiftool perl-Image-ExifTool
             install_pkg gpg gnupg2
             install_pkg curl curl
+            install_pkg fastfetch fastfetch
+            install_pkg git git
             ;;
         pacman)
             install_pkg ffmpeg ffmpeg
@@ -157,6 +200,8 @@ if [ -n "$PM" ]; then
             install_pkg exiftool perl-image-exiftool
             install_pkg gpg gnupg
             install_pkg curl curl
+            install_pkg fastfetch fastfetch
+            install_pkg git git
             ;;
         zypper)
             install_pkg ffmpeg ffmpeg
@@ -166,6 +211,8 @@ if [ -n "$PM" ]; then
             install_pkg exiftool perl-Image-ExifTool
             install_pkg gpg gnupg
             install_pkg curl curl
+            install_pkg fastfetch fastfetch
+            install_pkg git git
             ;;
         apk)
             install_pkg ffmpeg ffmpeg
@@ -175,6 +222,8 @@ if [ -n "$PM" ]; then
             install_pkg exiftool perl-image-exiftool
             install_pkg gpg gnupg
             install_pkg curl curl
+            install_pkg fastfetch fastfetch
+            install_pkg git git
             ;;
     esac
 fi
@@ -209,6 +258,18 @@ else
 fi
 
 # -------------------------------
+# Install 'thefuck' (Command Auto-correct)
+# -------------------------------
+echo ""
+echo "Installing/updating thefuck..."
+
+if command -v pipx >/dev/null 2>&1; then
+    pipx install thefuck >/dev/null 2>&1 || pipx upgrade thefuck || true
+else
+    pip3 install --user -U thefuck >/dev/null 2>&1 || true
+fi
+
+# -------------------------------
 # Install Python libraries
 # -------------------------------
 echo ""
@@ -227,4 +288,5 @@ echo "Restart your terminal or run:"
 echo "  source ~/.bashrc  (or ~/.zshrc depending on your shell)"
 echo ""
 echo "Try running:"
+echo "  fastfetch"
 echo "  toolkit-help"
