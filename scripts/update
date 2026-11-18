@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo "Detecting package manager..."
 
@@ -24,30 +24,43 @@ echo "Using package manager: $PM"
 echo ""
 
 # ===============================
-# Run update
+# Run update (with exit code handling)
 # ===============================
+SUCCESS=0
+
 case "$PM" in
     apt)
         sudo apt update
+        SUCCESS=$?
         ;;
     dnf)
         sudo dnf check-update
+        # DNF returns 100 when updates are available, which is a successful check
+        EXIT_CODE=$?
+        if [ $EXIT_CODE -eq 0 ] || [ $EXIT_CODE -eq 100 ]; then
+            SUCCESS=0
+        else
+            SUCCESS=$EXIT_CODE
+        fi
         ;;
     pacman)
         sudo pacman -Sy
+        SUCCESS=$?
         ;;
     zypper)
         sudo zypper refresh
+        SUCCESS=$?
         ;;
     apk)
         sudo apk update
+        SUCCESS=$?
         ;;
 esac
 
 # ===============================
 # Result
 # ===============================
-if [ $? -eq 0 ]; then
+if [ $SUCCESS -eq 0 ]; then
     echo ""
     echo "✅ System package list updated successfully"
 else
