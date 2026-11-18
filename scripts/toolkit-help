@@ -6,21 +6,35 @@ cat << 'EOF'
 
   📥 Media & Archiving:
     ytvideo <url> [res] [name]  - Download video in MKV container (itags/codec prioritized)
+      Example: ytvideo "https://youtube.com/watch?v=xxx" "1080p" "video_name"
     vytvideo <url> [res] [name] - Width-based vertical/horizontal video downloader
+      Example: vytvideo "https://youtube.com/watch?v=xxx" "4k" "clip"
     hytvideo <url> [res] [name] - High-speed parallel fragment video downloader
+      Example: hytvideo "https://youtube.com/watch?v=xxx" "720p" "fast"
     ytaudio <url>               - Extract lossless FLAC audio with cover art & lyrics prompt
+      Example: ytaudio "https://youtube.com/watch?v=xxx"
     aria <url> [options]        - Fast multi-connection file downloader via aria2c
+      Example: aria "https://example.com/file.zip"
     showformat <url>            - List available yt-dlp formats for a video
+      Example: showformat "https://youtube.com/watch?v=xxx"
 
   📱 Social Media & Utilities:
     insta <username> [full|update] - Download or fast-update Instagram profiles via instaloader
+      Example: insta natgeo update
     encrypt <target> [enc/dec]  - Securely encrypt/decrypt files or folders using GPG AES-256
+      Example: encrypt my_folder encrypt
     folders                     - Organize current directory into structured category folders
+      Example: folders
     exifpic <date> [file]       - Batch or single image EXIF timestamp updater
+      Example: exifpic "2026:11:18 12:00" photo.jpg
     hide <file>                 - Hide a file/directory (dotfile prefix + read-only)
+      Example: hide secret.txt
     unhide <file>               - Restore a hidden file/directory
+      Example: unhide .secret.txt
     showmeta <file>             - Display media file metadata headers via ffmpeg
+      Example: showmeta song.flac
     showlyrics <file>           - Display embedded audio lyrics
+      Example: showlyrics song.flac
 
   ⚙️ System & Maintenance:
     update                      - Refresh system package repository lists universally
