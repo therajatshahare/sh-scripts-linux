@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ===============================
 # Config
@@ -8,7 +8,7 @@ LOGIN_USER="aroallfather"
 # ===============================
 # Arguments
 # ===============================
-USERNAME="$1"
+USERNAME="${1:-}"
 MODE="${2:-full}"
 
 # ===============================
@@ -26,38 +26,47 @@ if [[ "$MODE" != "full" && "$MODE" != "update" ]]; then
 fi
 
 # ===============================
-# Check dependency
+# Check dependency universally
 # ===============================
 if ! command -v instaloader >/dev/null 2>&1; then
-    echo "instaloader not found. Install with:"
-    echo "  pip install instaloader"
+    echo "Error: instaloader is not installed or not found in PATH."
+    echo "Please install it using:"
+    echo "  pipx install instaloader"
+    echo "  (or: pip install --user instaloader)"
     exit 1
 fi
 
 # ===============================
-# Info (matches PowerShell version)
+# Info
 # ===============================
 echo "Processing profile: $USERNAME"
 echo "Download location: $(pwd)"
+echo ""
 
 # ===============================
 # Execute based on mode
 # ===============================
+SUCCESS=0
+
 if [ "$MODE" = "update" ]; then
     echo "Running FAST UPDATE mode..."
     instaloader --login "$LOGIN_USER" --fast-update "$USERNAME"
+    SUCCESS=$?
 else
     echo "Running FULL DOWNLOAD mode..."
     instaloader --login "$LOGIN_USER" "$USERNAME"
+    SUCCESS=$?
 fi
 
 # ===============================
 # Result handling
 # ===============================
-if [ $? -eq 0 ]; then
-    echo "Operation completed successfully!"
+if [ $SUCCESS -eq 0 ]; then
+    echo ""
+    echo "✅ Operation completed successfully!"
 else
-    echo "Operation failed. Check credentials or connection."
+    echo ""
+    echo "❌ Operation failed. Check credentials or connection."
     exit 1
 fi
 
