@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 echo "Detecting package manager..."
 
@@ -24,32 +24,37 @@ echo "Using package manager: $PM"
 echo ""
 
 # ===============================
-# Run upgrade
+# Run upgrade (with exit status capture)
 # ===============================
+SUCCESS=0
+
 case "$PM" in
     apt)
-        sudo apt update
-        sudo apt upgrade -y
+        sudo apt update && sudo apt upgrade -y
+        SUCCESS=$?
         ;;
     dnf)
         sudo dnf upgrade -y
+        SUCCESS=$?
         ;;
     pacman)
         sudo pacman -Syu --noconfirm
+        SUCCESS=$?
         ;;
     zypper)
         sudo zypper update -y
+        SUCCESS=$?
         ;;
     apk)
-        sudo apk update
-        sudo apk upgrade
+        sudo apk update && sudo apk upgrade
+        SUCCESS=$?
         ;;
 esac
 
 # ===============================
 # Result
 # ===============================
-if [ $? -eq 0 ]; then
+if [ $SUCCESS -eq 0 ]; then
     echo ""
     echo "✅ System upgraded successfully"
 else
