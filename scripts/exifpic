@@ -1,10 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 # ===============================
 # Arguments
 # ===============================
 DATETIME="$1"
-FILE="$2"
+FILE="${2:-}"
 
 # ===============================
 # Validate input
@@ -16,11 +17,16 @@ if [ -z "$DATETIME" ]; then
 fi
 
 # ===============================
-# Check dependency
+# Check dependency universally
 # ===============================
 if ! command -v exiftool >/dev/null 2>&1; then
-    echo "exiftool not found. Install it using:"
-    echo "  sudo apt install libimage-exiftool-perl"
+    echo "Error: exiftool is not installed or not found in PATH."
+    echo "Please install exiftool using your package manager:"
+    echo "  Ubuntu / Debian / Mint : sudo apt install libimage-exiftool-perl"
+    echo "  Fedora / RHEL / CentOS : sudo dnf install perl-Image-ExifTool"
+    echo "  Arch Linux / Manjaro   : sudo pacman -S perl-image-exiftool"
+    echo "  openSUSE               : sudo zypper install perl-Image-ExifTool"
+    echo "  Alpine Linux           : sudo apk add perl-image-exiftool"
     exit 1
 fi
 
@@ -45,9 +51,9 @@ if [ -n "$FILE" ]; then
 fi
 
 # ===============================
-# Batch mode (all images)
+# Batch mode (all images, case-insensitive)
 # ===============================
-shopt -s nullglob
+shopt -s nullglob nocaseglob
 files=( *.jpg *.jpeg *.png )
 
 if [ ${#files[@]} -eq 0 ]; then
