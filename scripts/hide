@@ -1,9 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 # ===============================
 # Argument
 # ===============================
-FILE="$1"
+FILE="${1:-}"
 
 # ===============================
 # Validate input
@@ -41,4 +42,4 @@ mv "$FILE" "$HIDDEN_FILE"
 # ===============================
 chmod a-w "$HIDDEN_FILE"
 
-echo "File '$FILE' is now hidden (dotfile + read-only)."
+echo "✅ File '$FILE' is now hidden (dotfile + read-only)."
