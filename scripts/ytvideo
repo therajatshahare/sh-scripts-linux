@@ -1,118 +1,263 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 # ===============================
-# Argument Handling
+# ytvideo (Linux Port)
+# Merged from hytvideo + vytvideo
+# Uses YouTube's fixed DASH itag numbers to pick the requested
+# quality tier directly, prioritizing av01 > avc1 > vp9.
 # ===============================
-res="$1"
-filename="$2"
-url="$3"
 
-# Shift logic (like PowerShell)
-if [ -z "$url" ]; then
-    url="$filename"
-    filename="$res"
-    res=""
+# -------------------------------
+# Validate yt-dlp
+# -------------------------------
+if ! command -v yt-dlp &> /dev/null; then
+    echo "yt-dlp not found. Please install and add to PATH."
+    exit 1
 fi
 
-if [ -z "$filename" ] || [ -z "$url" ]; then
+RES=""
+FILENAME=""
+URL=""
+
+# -------------------------------
+# Argument handling
+# -------------------------------
+# Supported call styles:
+#   ytvideo "playlist URL"                    -> playlist, highest quality, auto-named
+#   ytvideo "resolution" "playlist URL"       -> playlist, auto-named, no rename
+#   ytvideo "filename" "URL"                  -> single video, no resolution
+#   ytvideo "resolution" "filename" "URL"     -> single video, with resolution
+
+if [ $# -eq 1 ]; then
+    if [[ "$1" =~ ^https?:// ]]; then
+        URL="$1"
+    else
+        RES="$1"
+    fi
+elif [ $# -eq 2 ]; then
+    if [[ "$2" =~ ^https?:// ]]; then
+        URL="$2"
+        FILENAME="$1"
+        RES=""
+    else
+        RES="$1"
+        FILENAME="$2"
+    fi
+elif [ $# -ge 3 ]; then
+    RES="$1"
+    FILENAME="$2"
+    URL="$3"
+fi
+
+# Fallback check if URL is still empty
+if [ -z "$URL" ]; then
+    if [[ "$FILENAME" =~ ^https?:// ]]; then
+        URL="$FILENAME"
+        FILENAME="$RES"
+        RES=""
+    elif [[ "$RES" =~ ^https?:// ]]; then
+        URL="$RES"
+        RES=""
+    fi
+fi
+
+if [ -z "$URL" ]; then
+    echo 'Usage:'
+    echo '  ytvideo [resolution] "filename" "URL"    (single video)'
+    echo '  ytvideo [resolution] "playlist URL"      (playlist, auto-named)'
+    echo '  ytvideo "playlist URL"                   (playlist, highest quality, auto-named)'
+    exit 1
+fi
+
+# A playlist is detected by the URL itself
+isPlaylist=0
+if [[ "$URL" =~ playlist ]]; then
+    isPlaylist=1
+fi
+
+if [ $isPlaylist -eq 0 ] && [ -z "$FILENAME" ]; then
     echo 'Usage: ytvideo [resolution] "filename" "URL"'
     exit 1
 fi
 
-# ===============================
-# Check yt-dlp
-# ===============================
-if ! command -v yt-dlp >/dev/null 2>&1; then
-    echo "yt-dlp not found. Please install it."
-    exit 1
+# -------------------------------
+# Sanitize filename (single video only)
+# -------------------------------
+if [ $isPlaylist -eq 0 ]; then
+    FILENAME=$(echo "$FILENAME" | sed 's/[\\/:\*\?"<>|]/_/g')
 fi
 
-# ===============================
-# Sanitize filename
-# ===============================
-filename=$(echo "$filename" | sed 's/[\\/:*?"<>|]/_/g')
-
-# ===============================
+# -------------------------------
 # Output directory
-# ===============================
-outputDir="$HOME/YT-DLP"
+# -------------------------------
+outputDir="YT-DLP"
 mkdir -p "$outputDir"
 
-# ===============================
-# Format selection
-# ===============================
-format="bestvideo+bestaudio/best"
+# -------------------------------
+# Format selection (DASH itags)
+# -------------------------------
+get_format_chain() {
+    local res=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+    local chain=""
 
-case "${res,,}" in
-    "4k")
-        format="bestvideo[height<=2160][height>=1440]+bestaudio/best"
-        ;;
-    "2k")
-        format="bestvideo[height<=1440][height>=1080]+bestaudio/best"
-        ;;
-    "1080p")
-        format="bestvideo[height<=1080][height>=720]+bestaudio/best"
-        ;;
-    "720p")
-        format="bestvideo[height<=720][height>=480]+bestaudio/best"
-        ;;
-    "480p")
-        format="bestvideo[height<=480][height>=360]+bestaudio/best"
-        ;;
-    "360p")
-        format="bestvideo[height<=360][height>=240]+bestaudio/best"
-        ;;
-    "240p")
-        format="bestvideo[height<=240]+bestaudio/best"
-        ;;
-esac
+    case "$res" in
+        4k)    chain="401/313" ;;
+        2k)    chain="400/271" ;;
+        1080p) chain="399/137/248" ;;
+        720p)  chain="398/136/247" ;;
+        480p)  chain="397/135/244" ;;
+        360p)  chain="396/134/243" ;;
+        240p)  chain="395/133/242" ;;
+        *)     echo "bestvideo+bestaudio/best"; return ;;
+    esac
 
-# ===============================
-# Subtitle detection
-# ===============================
-subs=$(yt-dlp --list-subs "$url" 2>/dev/null)
+    echo "($chain)+bestaudio/bestvideo+bestaudio/best"
+}
 
-hasRealSub=false
+format=$(get_format_chain "$RES")
 
-if echo "$subs" | grep -q "^en " && ! echo "$subs" | grep -qi "auto-generated"; then
-    hasRealSub=true
+# -------------------------------
+# Cookie / bot-check handling
+# -------------------------------
+COOKIE_ARGS=()
+
+test_needs_cookies() {
+    local text="$1"
+    if [ -z "$text" ]; then return 1; fi
+    if echo "$text" | grep -qE "Sign in to confirm you|confirm you.{0,3}re not a bot|HTTP Error 429|Too Many Requests|Use --cookies-from-browser|This video is only available to Music Premium members|Please sign in"; then
+        return 0
+    fi
+    return 1
+}
+
+request_cookies() {
+    if [ ${#COOKIE_ARGS[@]} -gt 0 ]; then return 0; fi
+
+    echo ""
+    echo -e "\033[33mYouTube blocked that request (bot check / rate limit).\033[0m"
+    read -p "Would you like to retry using cookies from your browser? (y/n): " answer
+    if [[ ! "$answer" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+        echo -e "\033[33mContinuing without cookies.\033[0m"
+        return 1
+    fi
+
+    read -p "Which browser? (firefox/chrome/edge/brave/opera/vivaldi/chromium) [firefox]: " browser
+    if [ -z "$browser" ]; then browser="firefox"; fi
+    browser=$(echo "$browser" | xargs | tr '[:upper:]' '[:lower:]')
+
+    COOKIE_ARGS=("--cookies-from-browser" "$browser")
+    echo -e "\033[36mRetrying with cookies from $browser...\033[0m"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Enabled --cookies-from-browser $browser for: $URL" >> "yt-dlp-log.txt"
+    return 0
+}
+
+# -------------------------------
+# Download arguments builder
+# -------------------------------
+get_download_args() {
+    if [ $isPlaylist -eq 1 ]; then
+        echo "Playlist mode: downloading with auto-generated names (each video's orientation is resolved individually)..." >&2
+        printf '%s\n' \
+            "-f" "$format" \
+            "--yes-playlist" \
+            "--merge-output-format" "mkv" \
+            "--write-subs" \
+            "--sub-lang" "en" \
+            "--embed-subs" \
+            "--ignore-errors" \
+            "-o" "$outputDir/%(playlist_index)02d - %(title)s.%(ext)s" \
+            "$URL"
+        return
+    fi
+
+    local subs_cmd=("yt-dlp")
+    if [ ${#COOKIE_ARGS[@]} -gt 0 ]; then
+        subs_cmd+=("${COOKIE_ARGS[@]}")
+    fi
+    subs_cmd+=("--list-subs" "$URL")
+
+    local subs
+    subs=$("${subs_cmd[@]}" 2>/dev/null || true)
+
+    local hasRealSub=0
+    if echo "$subs" | grep -qE '^en ' && ! echo "$subs" | grep -q 'auto-generated'; then
+        hasRealSub=1
+    fi
+
+    if [ $hasRealSub -eq 1 ]; then
+        echo "Real English subtitles found. Downloading with subtitles..." >&2
+        printf '%s\n' \
+            "-f" "$format" \
+            "--merge-output-format" "mkv" \
+            "--sub-lang" "en" \
+            "--write-subs" \
+            "--embed-subs" \
+            "-o" "$outputDir/$FILENAME.mkv" \
+            "$URL"
+    else
+        echo "No real English subtitles found. Downloading without subtitles..." >&2
+        printf '%s\n' \
+            "-f" "$format" \
+            "--merge-output-format" "mkv" \
+            "-o" "$outputDir/$FILENAME.mkv" \
+            "$URL"
+    fi
+}
+
+# -------------------------------
+# Execution & Retry Loop
+# -------------------------------
+mapfile -t args < <(get_download_args)
+
+tmp_file=$(mktemp)
+yt_cmd=("yt-dlp" "--newline")
+if [ ${#COOKIE_ARGS[@]} -gt 0 ]; then
+    yt_cmd+=("${COOKIE_ARGS[@]}")
+fi
+yt_cmd+=("${args[@]}")
+
+"${yt_cmd[@]}" 2>&1 | tee "$tmp_file"
+exit_code=${PIPESTATUS[0]}
+output_log=$(cat "$tmp_file")
+rm -f "$tmp_file"
+
+if [ $exit_code -ne 0 ] && test_needs_cookies "$output_log"; then
+    if request_cookies; then
+        mapfile -t args < <(get_download_args)
+        tmp_file=$(mktemp)
+        yt_cmd=("yt-dlp" "--newline")
+        if [ ${#COOKIE_ARGS[@]} -gt 0 ]; then
+            yt_cmd+=("${COOKIE_ARGS[@]}")
+        fi
+        yt_cmd+=("${args[@]}")
+
+        "${yt_cmd[@]}" 2>&1 | tee "$tmp_file"
+        exit_code=${PIPESTATUS[0]}
+        output_log=$(cat "$tmp_file")
+        rm -f "$tmp_file"
+    fi
 fi
 
-# ===============================
-# Download
-# ===============================
-outputFile="$outputDir/$filename.%(ext)s"
+timestamp() {
+    date +"%Y-%m-%d %H:%M:%S"
+}
 
-if [ "$hasRealSub" = true ]; then
-    echo "Real English subtitles found. Downloading with subtitles..."
-
-    yt-dlp -f "$format" \
-        --merge-output-format mkv \
-        --sub-lang en \
-        --write-subs \
-        --embed-subs \
-        -o "$outputFile" \
-        "$url"
+if [ $isPlaylist -eq 1 ]; then
+    echo "[$(timestamp)] Downloaded playlist: $URL" >> "yt-dlp-log.txt"
 else
-    echo "No real English subtitles found. Downloading without subtitles..."
-
-    yt-dlp -f "$format" \
-        --merge-output-format mkv \
-        -o "$outputFile" \
-        "$url"
+    echo "[$(timestamp)] Downloading $URL as $FILENAME.mkv" >> "yt-dlp-log.txt"
 fi
 
-# ===============================
-# Error handling
-# ===============================
-if [ $? -ne 0 ]; then
-    echo "❌ Download failed"
+if [ $exit_code -ne 0 ]; then
+    echo ""
+    echo -e "\033[31mDownload failed.\033[0m"
+    if test_needs_cookies "$output_log"; then
+        echo -e "\033[33mYouTube is still refusing the request. Things to try:\033[0m"
+        echo "  - Make sure you're signed in to YouTube in the browser you picked"
+        echo "  - Close that browser fully (it can lock its cookie database), then retry"
+        echo "  - Wait a while if you've been rate-limited (HTTP 429)"
+    fi
     exit 1
 fi
-
-# ===============================
-# Logging
-# ===============================
-echo "[$(date '+%Y-%m-%d %H:%M:%S')] Downloading $url as $filename.mkv" >> "$HOME/yt-dlp-log.txt"
-
-echo "✅ Download completed"
+```[cite: 7]
