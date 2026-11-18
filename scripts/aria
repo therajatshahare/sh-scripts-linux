@@ -1,11 +1,17 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 # ===============================
-# Check dependency
+# Check dependency universally
 # ===============================
 if ! command -v aria2c >/dev/null 2>&1; then
-    echo "aria2c not found. Install it using:"
-    echo "  sudo apt install aria2"
+    echo "Error: aria2c is not installed or not found in PATH."
+    echo "Please install aria2 using your package manager:"
+    echo "  Ubuntu / Debian / Mint : sudo apt install aria2"
+    echo "  Fedora / RHEL / CentOS : sudo dnf install aria2"
+    echo "  Arch Linux / Manjaro   : sudo pacman -S aria2"
+    echo "  openSUSE               : sudo zypper install aria2"
+    echo "  Alpine Linux           : sudo apk add aria2"
     exit 1
 fi
 
@@ -18,6 +24,6 @@ if [ $# -eq 0 ]; then
 fi
 
 # ===============================
-# Execute aria2c
+# Execute aria2c with high performance
 # ===============================
 aria2c -x 16 -s 16 -k 1M "$@"
