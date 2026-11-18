@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+RES=""
+FILENAME=""
+URL=""
+
+# -------------------------------
+# Argument handling
+# -------------------------------
+# Supported call styles:
+#   hytvideo "playlist URL"                    -> playlist, highest quality, auto-named
+#   hytvideo "resolution" "playlist URL"       -> playlist, auto-named, no rename
+#   hytvideo "filename" "URL"                  -> single video, no resolution
+#   hytvideo "resolution" "filename" "URL"     -> single video, with resolution
+
+if [ $# -eq 1 ]; then
+    if [[ "$1" =~ ^https?:// ]]; then
+        URL="$1"
+    else
+        RES="$1"
+    fi
+elif [ $# -eq 2 ]; then
+    if [[ "$2" =~ ^https?:// ]]; then
+        URL="$2"
+        FILENAME="$1"
+        RES=""
+    else
+        RES="$1"
+        FILENAME="$2"
+    fi
+elif [ $# -ge 3 ]; then
+    RES="$1"
+    FILENAME="$2"
+    URL="$3"
+fi
+
+# Fallback check if URL is still empty
+if [ -z "$URL" ]; then
+    if [[ "$FILENAME" =~ ^https?:// ]]; then
+        URL="$FILENAME"
+        FILENAME="$RES"
+        RES=""
+    elif [[ "$RES" =~ ^https?:// ]]; then
+        URL="$RES"
+        RES=""
+    fi
+fi
+
+# -------------------------------
+# Validate yt-dlp
+# -------------------------------
+if ! command -v yt-dlp &> /dev/null; then
+    echo "yt-dlp not found. Please install and add to PATH."
+    exit 1
+fi
+
+if [ -z "$URL" ]; then
+    echo 'Usage:'
+    echo '  hytvideo [resolution] "filename" "URL"    (single video)'
+    echo '  hytvideo [resolution] "playlist URL"      (playlist, auto-named)'
+    echo '  hytvideo "playlist URL"                   (playlist, highest quality, auto-named)'
+    exit 1
+fi
+
+# A playlist is detected by the URL itself
+isPlaylist=0
+if [[ "$URL" =~ playlist ]]; then
+    isPlaylist=1
+fi
+
+if [ $isPlaylist -eq 0 ] && [ -z "$FILENAME" ]; then
+    echo 'Usage: hytvideo [resolution] "filename" "URL"'
+    exit 1
+fi
+
+# -------------------------------
+# Sanitize filename (single video only)
+# -------------------------------
+if [ $isPlaylist -eq 0 ]; then
+    FILENAME=$(echo "$FILENAME" | sed 's/[\\/:\*\?"<>|]/_/g')
+fi
+
+# -------------------------------
+# Output directory
+# -------------------------------
+outputDir="YT-DLP"
+mkdir -p "$outputDir"
+
+# -------------------------------
+# Format selection (height-based)
+# -------------------------------
+format="bestvideo+bestaudio/best"
+res_lower=$(echo "$RES" | tr '[:upper:]' '[:lower:]')
+
+case "$res_lower" in
+    4k)
+        format="bestvideo[height<=2160][height>=1440]+bestaudio/bestvideo+bestaudio/best"
+        ;;
+    2k)
+        format="bestvideo[height<=1440][height>=1080]+bestaudio/bestvideo+bestaudio/best"
+        ;;
+    1080p)
+        format="bestvideo[height<=1080][height>=720]+bestaudio/bestvideo+bestaudio/best"
+        ;;
+    720p)
+        format="bestvideo[height<=720][height>=480]+bestaudio/bestvideo+bestaudio/best"
+        ;;
+    480p)
+        format="bestvideo[height<=480][height>=360]+bestaudio/bestvideo+bestaudio/best"
+        ;;
+    360p)
+        format="bestvideo[height<=360][height>=240]+bestaudio/bestvideo+bestaudio/best"
+        ;;
+    240p)
+        format="bestvideo[height<=240]+bestaudio/bestvideo+bestaudio/best"
+        ;;
+esac
+
+timestamp() {
+    date +"%Y-%m-%d %H:%M:%S"
+}
+
+# -------------------------------
+# Download
+# -------------------------------
+if [ $isPlaylist -eq 1 ]; then
+    echo "Playlist mode: downloading with auto-generated names..."
+    yt-dlp -f "$format" --yes-playlist --merge-output-format mkv \
+        --write-subs --sub-lang en --embed-subs --ignore-errors \
+        -o "$outputDir/%(playlist_index)02d - %(title)s.%(ext)s" "$URL"
+
+    echo "[$(timestamp)] Downloaded playlist: $URL" >> "yt-dlp-log.txt"
+else
+    # Subtitle detection (single video only)
+    subs=$(yt-dlp --list-subs "$URL" 2>/dev/null || true)
+    hasRealSub=0
+    if echo "$subs" | grep -q '^en ' && ! echo "$subs" | grep -q 'auto-generated'; then
+        hasRealSub=1
+    fi
+
+    if [ $hasRealSub -eq 1 ]; then
+        echo "Real English subtitles found. Downloading with subtitles..."
+        yt-dlp -f "$format" --merge-output-format mkv --sub-lang en --write-subs --embed-subs \
+            -o "$outputDir/$FILENAME.mkv" "$URL"
+    else
+        echo "No real English subtitles found. Downloading without subtitles..."
+        yt-dlp -f "$format" --merge-output-format mkv \
+            -o "$outputDir/$FILENAME.mkv" "$URL"
+    fi
+
+    echo "[$(timestamp)] Downloading $URL as $FILENAME.mkv" >> "yt-dlp-log.txt"
+fi
+```[cite: 6]
