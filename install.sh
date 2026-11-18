@@ -1,10 +1,9 @@
-#!/bin/bash
-
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
 TOOLKIT_VERSION="1.0.0"
-echo "Cmd-Scripts Linux Version: $TOOLKIT_VERSION"
-echo "=== Cmd-Scripts Setup Starting ==="
+echo "sh-scripts-linux toolkit Version: $TOOLKIT_VERSION"
+echo "=== sh-scripts-linux Setup Starting ==="
 
 # ===============================
 # CONFIG
@@ -18,7 +17,7 @@ BASE_RAW="https://raw.githubusercontent.com/$REPO_USER/$REPO_NAME/$BRANCH"
 # Target directory
 TARGET_DIR="$HOME/.local/bin"
 
-# Script list
+# Complete Script list (including utilities & python fallbacks)
 SCRIPTS=(
 ytvideo
 vytvideo
@@ -34,6 +33,8 @@ aria
 exifpic
 folders
 insta
+encrypt
+insta_fallback.py
 toolkit-help
 update-scripts
 toolkit-uninstall
@@ -58,43 +59,42 @@ for script in "${SCRIPTS[@]}"; do
 
     if curl -fsSL "$url" -o "$out"; then
         chmod +x "$out"
-        echo "✔ $script"
+        echo "  ✔ $script"
     else
-        echo "✖ Failed: $script"
+        echo "  ✖ Failed: $script"
     fi
 done
 
 # ===============================
-# ADD TO PATH
+# ADD TO PATH (ROBUST SHELL DETECTION)
 # ===============================
 if [[ ":$PATH:" != *":$TARGET_DIR:"* ]]; then
     echo ""
     echo "Adding $TARGET_DIR to PATH..."
 
-    if [ -n "$ZSH_VERSION" ]; then
+    if [[ "$SHELL" == */zsh ]]; then
         SHELL_CONFIG="$HOME/.zshrc"
     else
         SHELL_CONFIG="$HOME/.bashrc"
     fi
 
     echo "" >> "$SHELL_CONFIG"
-    echo "# Cmd-Scripts PATH" >> "$SHELL_CONFIG"
+    echo "# sh-scripts-linux toolkit PATH" >> "$SHELL_CONFIG"
     echo "export PATH=\"$TARGET_DIR:\$PATH\"" >> "$SHELL_CONFIG"
 
     echo "✔ PATH updated in $SHELL_CONFIG"
     echo "👉 Run: source $SHELL_CONFIG"
 else
     echo ""
-    echo "PATH already configured"
+    echo "✔ PATH already configured"
 fi
 
 # ===============================
-# INSTALL DEPENDENCIES
+# INSTALL SYSTEM DEPENDENCIES
 # ===============================
 echo ""
-echo "Installing dependencies..."
+echo "Detecting package manager and installing dependencies..."
 
-# Detect package manager
 if command -v apt >/dev/null 2>&1; then
     PM="apt"
     sudo apt update
@@ -107,31 +107,76 @@ elif command -v zypper >/dev/null 2>&1; then
 elif command -v apk >/dev/null 2>&1; then
     PM="apk"
 else
-    echo "⚠ Unsupported package manager."
+    echo "⚠ Unsupported package manager. Please install dependencies manually."
     PM=""
 fi
 
-# Install system packages
 install_pkg() {
-    if command -v "$1" >/dev/null 2>&1; then
-        echo "$1 already installed"
+    local cmd_name="$1"
+    shift
+    if command -v "$cmd_name" >/dev/null 2>&1; then
+        echo "  ✔ $cmd_name already installed"
         return
     fi
 
+    echo "  [*] Installing $cmd_name..."
     case "$PM" in
-        apt) sudo apt install -y "$2" ;;
-        dnf) sudo dnf install -y "$2" ;;
-        pacman) sudo pacman -S --noconfirm "$2" ;;
-        zypper) sudo zypper install -y "$2" ;;
-        apk) sudo apk add "$2" ;;
+        apt) sudo apt install -y "$@" ;;
+        dnf) sudo dnf install -y "$@" ;;
+        pacman) sudo pacman -S --noconfirm "$@" ;;
+        zypper) sudo zypper install -y "$@" ;;
+        apk) sudo apk add "$@" ;;
     esac
 }
 
 if [ -n "$PM" ]; then
-    install_pkg ffmpeg ffmpeg
-    install_pkg aria2c aria2
-    install_pkg python3 python3
-    install_pkg pipx pipx
+    case "$PM" in
+        apt)
+            install_pkg ffmpeg ffmpeg
+            install_pkg aria2c aria2
+            install_pkg python3 python3 python3-pip
+            install_pkg pipx pipx
+            install_pkg exiftool libimage-exiftool-perl
+            install_pkg gpg gnupg
+            install_pkg curl curl
+            ;;
+        dnf)
+            install_pkg ffmpeg ffmpeg
+            install_pkg aria2c aria2
+            install_pkg python3 python3 python3-pip
+            install_pkg pipx pipx
+            install_pkg exiftool perl-Image-ExifTool
+            install_pkg gpg gnupg2
+            install_pkg curl curl
+            ;;
+        pacman)
+            install_pkg ffmpeg ffmpeg
+            install_pkg aria2c aria2
+            install_pkg python3 python python-pip
+            install_pkg pipx python-pipx
+            install_pkg exiftool perl-image-exiftool
+            install_pkg gpg gnupg
+            install_pkg curl curl
+            ;;
+        zypper)
+            install_pkg ffmpeg ffmpeg
+            install_pkg aria2c aria2
+            install_pkg python3 python3 python3-pip
+            install_pkg pipx python3-pipx
+            install_pkg exiftool perl-Image-ExifTool
+            install_pkg gpg gnupg
+            install_pkg curl curl
+            ;;
+        apk)
+            install_pkg ffmpeg ffmpeg
+            install_pkg aria2c aria2
+            install_pkg python3 python3 py3-pip
+            install_pkg pipx py3-pipx
+            install_pkg exiftool perl-image-exiftool
+            install_pkg gpg gnupg
+            install_pkg curl curl
+            ;;
+    esac
 fi
 
 # Ensure pipx PATH
@@ -143,24 +188,24 @@ fi
 # Install yt-dlp (LATEST)
 # -------------------------------
 echo ""
-echo "Installing yt-dlp (latest)..."
+echo "Installing/updating yt-dlp..."
 
 if command -v pipx >/dev/null 2>&1; then
-    pipx install yt-dlp >/dev/null 2>&1 || pipx upgrade yt-dlp
+    pipx install yt-dlp >/dev/null 2>&1 || pipx upgrade yt-dlp || true
 else
-    pip3 install --user -U yt-dlp
+    pip3 install --user -U yt-dlp >/dev/null 2>&1 || true
 fi
 
 # -------------------------------
 # Install instaloader (LATEST)
 # -------------------------------
 echo ""
-echo "Installing instaloader (latest)..."
+echo "Installing/updating instaloader..."
 
 if command -v pipx >/dev/null 2>&1; then
-    pipx install instaloader >/dev/null 2>&1 || pipx upgrade instaloader
+    pipx install instaloader >/dev/null 2>&1 || pipx upgrade instaloader || true
 else
-    pip3 install --user -U instaloader
+    pip3 install --user -U instaloader >/dev/null 2>&1 || true
 fi
 
 # -------------------------------
@@ -178,8 +223,8 @@ pip3 install --user lyricsgenius >/dev/null 2>&1 || true
 echo ""
 echo "=== Setup Complete ==="
 echo ""
-echo "Restart terminal or run:"
-echo "  source ~/.bashrc"
+echo "Restart your terminal or run:"
+echo "  source ~/.bashrc  (or ~/.zshrc depending on your shell)"
 echo ""
-echo "Try:"
+echo "Try running:"
 echo "  toolkit-help"
