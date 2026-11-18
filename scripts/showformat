@@ -1,9 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 # ===============================
 # Argument
 # ===============================
-URL="$1"
+URL="${1:-}"
 
 # ===============================
 # Validate input
@@ -14,11 +15,14 @@ if [ -z "$URL" ]; then
 fi
 
 # ===============================
-# Check dependency
+# Check dependency universally
 # ===============================
 if ! command -v yt-dlp >/dev/null 2>&1; then
-    echo "yt-dlp not found. Install it using:"
-    echo "  sudo apt install yt-dlp"
+    echo "Error: yt-dlp is not installed or not found in PATH."
+    echo "Please install yt-dlp using your package manager:"
+    echo "  Ubuntu / Debian / Mint : sudo apt install yt-dlp"
+    echo "  Fedora / RHEL / CentOS : sudo dnf install yt-dlp"
+    echo "  Arch Linux / Manjaro   : sudo pacman -S yt-dlp"
     exit 1
 fi
 
