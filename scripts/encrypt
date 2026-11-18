@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ===============================
+# Argument Check
+# ===============================
+if [ $# -lt 1 ]; then
+    echo "Usage: encrypt <file_or_directory> [encrypt/decrypt]"
+    exit 1
+fi
+
+TARGET="$1"
+MODE="${2:-encrypt}"
+
+if [ ! -e "$TARGET" ]; then
+    echo "❌ Error: Target '$TARGET' not found."
+    exit 1
+fi
+
+# ===============================
+# Check Dependency
+# ===============================
+if ! command -v gpg >/dev/null 2>&1; then
+    echo "❌ Error: gpg is not installed."
+    echo "Please install GnuPG using your package manager (e.g., sudo apt install gnupg / sudo dnf install gnupg)"
+    exit 1
+fi
+
+# ===============================
+# Execution
+# ===============================
+if [ "$MODE" = "encrypt" ]; then
+    echo "[*] Encrypting $TARGET with AES-256..."
+    tar czf - "$TARGET" | gpg --symmetric --cipher-algo AES256 -o "${TARGET}.tar.gz.gpg"
+    echo "✅ Encrypted successfully to: ${TARGET}.tar.gz.gpg"
+elif [ "$MODE" = "decrypt" ]; then
+    echo "[*] Decrypting $TARGET..."
+    gpg -d "$TARGET" | tar xzf -
+    echo "✅ Decrypted successfully."
+else
+    echo "❌ Invalid mode. Use 'encrypt' or 'decrypt'."
+    exit 1
+fi
