@@ -1,9 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 # ===============================
 # Argument
 # ===============================
-FILE="$1"
+FILE="${1:-}"
 
 # ===============================
 # Validate input
@@ -19,11 +20,14 @@ if [ ! -f "$FILE" ]; then
 fi
 
 # ===============================
-# Check dependency
+# Check dependency universally
 # ===============================
 if ! command -v ffmpeg >/dev/null 2>&1; then
-    echo "ffmpeg not found. Install it using:"
-    echo "  sudo apt install ffmpeg"
+    echo "Error: ffmpeg is not installed or not found in PATH."
+    echo "Please install ffmpeg using your package manager:"
+    echo "  Ubuntu / Debian / Mint : sudo apt install ffmpeg"
+    echo "  Fedora / RHEL / CentOS : sudo dnf install ffmpeg"
+    echo "  Arch Linux / Manjaro   : sudo pacman -S ffmpeg"
     exit 1
 fi
 
@@ -32,18 +36,19 @@ echo "--------------------------"
 
 # ===============================
 # Get metadata
+# (ffmpeg returns exit status 1 when no output file is provided; || true prevents set -e abort)
 # ===============================
-output=$(ffmpeg -hide_banner -i "$FILE" 2>&1)
+output=$(ffmpeg -hide_banner -i "$FILE" 2>&1 || true)
 
 # ===============================
 # Filter metadata lines
 # ===============================
-meta=$(echo "$output" | grep -E '^[[:space:]]+[a-zA-Z0-9_]+[[:space:]]*:' | grep -v "Stream")
+meta=$(echo "$output" | grep -E '^[[:space:]]+[a-zA-Z0-9_]+[[:space:]]*:' | grep -v "Stream" || true)
 
 # ===============================
 # Output
 # ===============================
-if [ -n "$meta" ]; then
+if [ -n "$meta" ] && [ -n "$(echo "$meta" | tr -d '[:space:]')" ]; then
     echo "$meta"
 else
     echo "No metadata found."
