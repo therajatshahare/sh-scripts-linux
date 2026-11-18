@@ -1,5 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
-echo "Listing all folders (including hidden ones) from the current directory..."
+echo "Listing all directories (including hidden ones) from the current directory..."
+echo "------------------------------------------------------------------"
 
 find . -type d
