@@ -1,9 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 # ===============================
 # Argument
 # ===============================
-FILE="$1"
+FILE="${1:-}"
 
 # ===============================
 # Validate input
@@ -41,6 +42,6 @@ mv "$FILE" "$NEW_FILE"
 # ===============================
 # Restore write permission
 # ===============================
-chmod u+w "$NEW_FILE"
+chmod +w "$NEW_FILE"
 
-echo "File '$FILE' is now visible as '$VISIBLE_NAME'."
+echo "✅ File '$FILE' is now visible as '$VISIBLE_NAME'."
