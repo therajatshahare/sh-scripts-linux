@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TOOLKIT_VERSION="1.1.1"
+TOOLKIT_VERSION="1.1.2"
 echo "sh-scripts-linux toolkit Version: $TOOLKIT_VERSION"
 echo "=== sh-scripts-linux Setup Starting ==="
 
@@ -116,6 +116,18 @@ fi
 EOF
         echo "✔ Configured Zsh command autosuggestions"
     fi
+fi
+
+# Configure fastfetch on terminal startup
+if ! grep -q "fastfetch" "$SHELL_CONFIG"; then
+    cat << 'EOF' >> "$SHELL_CONFIG"
+
+# sh-scripts-linux: Show system specs on startup
+if command -v fastfetch &> /dev/null; then
+    fastfetch
+fi
+EOF
+    echo "✔ Configured fastfetch startup display"
 fi
 
 # ===============================
