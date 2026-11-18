@@ -1,9 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -euo pipefail
 
 # ===============================
 # Argument
 # ===============================
-FILE="$1"
+FILE="${1:-}"
 
 # ===============================
 # Validate input
@@ -19,11 +20,14 @@ if [ ! -f "$FILE" ]; then
 fi
 
 # ===============================
-# Check dependency
+# Check dependency universally
 # ===============================
 if ! command -v ffprobe >/dev/null 2>&1; then
-    echo "ffprobe not found. Install ffmpeg:"
-    echo "  sudo apt install ffmpeg"
+    echo "Error: ffprobe is not installed or not found in PATH."
+    echo "Please install ffmpeg using your package manager:"
+    echo "  Ubuntu / Debian / Mint : sudo apt install ffmpeg"
+    echo "  Fedora / RHEL / CentOS : sudo dnf install ffmpeg"
+    echo "  Arch Linux / Manjaro   : sudo pacman -S ffmpeg"
     exit 1
 fi
 
@@ -33,7 +37,7 @@ fi
 lyrics=$(ffprobe -v error \
     -show_entries format_tags=lyrics \
     -of default=nw=1:nk=1 \
-    "$FILE" 2>/dev/null)
+    "$FILE" 2>/dev/null || true)
 
 # ===============================
 # Output
