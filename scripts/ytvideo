@@ -98,7 +98,8 @@ mkdir -p "$outputDir"
 # Format selection (DASH itags)
 # -------------------------------
 get_format_chain() {
-    local res=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+    local res
+    res=$(echo "${1:-}" | tr '[:upper:]' '[:lower:]')
     local chain=""
 
     case "$res" in
@@ -136,13 +137,13 @@ request_cookies() {
 
     echo ""
     echo -e "\033[33mYouTube blocked that request (bot check / rate limit).\033[0m"
-    read -p "Would you like to retry using cookies from your browser? (y/n): " answer
+    read -r -p "Would you like to retry using cookies from your browser? (y/n): " answer
     if [[ ! "$answer" =~ ^([yY][eE][sS]|[yY])$ ]]; then
         echo -e "\033[33mContinuing without cookies.\033[0m"
         return 1
     fi
 
-    read -p "Which browser? (firefox/chrome/edge/brave/opera/vivaldi/chromium) [firefox]: " browser
+    read -r -p "Which browser? (firefox/chrome/edge/brave/opera/vivaldi/chromium) [firefox]: " browser
     if [ -z "$browser" ]; then browser="firefox"; fi
     browser=$(echo "$browser" | xargs | tr '[:upper:]' '[:lower:]')
 
@@ -162,7 +163,9 @@ get_download_args() {
             "-f" "$format" \
             "--yes-playlist" \
             "--merge-output-format" "mkv" \
-            "--sub-lang" "en" \
+            "--write-subs" \
+            "--write-auto-subs" \
+            "--sub-langs" "en.*,en" \
             "--embed-subs" \
             "--ignore-errors" \
             "-o" "$outputDir/%(playlist_index)02d - %(title)s.%(ext)s" \
@@ -180,24 +183,28 @@ get_download_args() {
     subs=$("${subs_cmd[@]}" 2>/dev/null || true)
 
     local hasRealSub=0
-    if echo "$subs" | grep -E '^en([[:space:]]|-)' | grep -qv 'auto-generated'; then
+    if echo "$subs" | grep -E '^en([[:space:]]|-|$)' | grep -qv 'auto-generated'; then
         hasRealSub=1
     fi
 
     if [ $hasRealSub -eq 1 ]; then
-        echo "Real English subtitles found. Downloading with subtitles..." >&2
+        echo "Real English subtitles found. Downloading and embedding subtitles..." >&2
         printf '%s\n' \
             "-f" "$format" \
             "--merge-output-format" "mkv" \
-            "--sub-lang" "en" \
+            "--write-subs" \
+            "--sub-langs" "en.*,en" \
             "--embed-subs" \
             "-o" "$outputDir/$FILENAME.mkv" \
             "$URL"
     else
-        echo "No real English subtitles found. Downloading without subtitles..." >&2
+        echo "No manual English subtitles found. Falling back to auto-generated English subtitles..." >&2
         printf '%s\n' \
             "-f" "$format" \
             "--merge-output-format" "mkv" \
+            "--write-auto-subs" \
+            "--sub-langs" "en.*,en" \
+            "--embed-subs" \
             "-o" "$outputDir/$FILENAME.mkv" \
             "$URL"
     fi
