@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TOOLKIT_VERSION="1.1.4"
+TOOLKIT_VERSION="1.1.5"
 echo "sh-scripts-linux toolkit Version: $TOOLKIT_VERSION"
 echo "=== sh-scripts-linux Setup Starting ==="
 
@@ -213,6 +213,7 @@ if [ -n "$PM" ]; then
     install_pkg pipx pipx
     install_pkg curl curl
     install_pkg git git
+    install_pkg unzip unzip
 
     case "$PM" in
         apt)
@@ -234,6 +235,25 @@ fi
 
 if command -v pipx >/dev/null 2>&1; then
     pipx ensurepath >/dev/null 2>&1 || true
+fi
+
+# -------------------------------
+# Install Deno (JS runtime for yt-dlp)
+# -------------------------------
+echo ""
+echo "Installing/checking deno..."
+
+if command -v deno >/dev/null 2>&1; then
+    echo "  ✔ deno already installed"
+elif [ -x "$HOME/.deno/bin/deno" ]; then
+    echo "  ✔ deno found in ~/.deno/bin"
+else
+    curl -fsSL https://deno.land/install.sh | sh >/dev/null 2>&1 || true
+    if command -v deno >/dev/null 2>&1 || [ -x "$HOME/.deno/bin/deno" ]; then
+        echo "  ✔ deno installed"
+    else
+        echo "  ⚠ Could not install deno automatically; yt-dlp may warn about missing JS runtime."
+    fi
 fi
 
 # ===============================
