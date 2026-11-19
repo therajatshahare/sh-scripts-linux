@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TOOLKIT_VERSION="1.1.3"
+TOOLKIT_VERSION="1.1.4"
 echo "sh-scripts-linux toolkit Version: $TOOLKIT_VERSION"
 echo "=== sh-scripts-linux Setup Starting ==="
 
@@ -13,11 +13,8 @@ REPO_NAME="sh-scripts-linux"
 BRANCH="main"
 
 BASE_RAW="https://raw.githubusercontent.com/$REPO_USER/$REPO_NAME/$BRANCH"
-
-# Target directory
 TARGET_DIR="$HOME/.local/bin"
 
-# Complete Script list (including utilities & python fallbacks)
 SCRIPTS=(
 ytvideo
 vytvideo
@@ -42,14 +39,10 @@ lyrics.py
 )
 
 # ===============================
-# CREATE DIRECTORY
+# CREATE DIRECTORY & DOWNLOAD
 # ===============================
 mkdir -p "$TARGET_DIR"
 echo "Using install directory: $TARGET_DIR"
-
-# ===============================
-# DOWNLOAD SCRIPTS
-# ===============================
 echo ""
 echo "Downloading scripts..."
 
@@ -66,28 +59,30 @@ for script in "${SCRIPTS[@]}"; do
 done
 
 # ===============================
-# ADD TO PATH & ENHANCE SHELL CONFIG
+# SHELL CONFIG & ENHANCEMENTS
 # ===============================
 echo ""
 echo "Configuring shell environment..."
 
-if [[ "$SHELL" == */zsh ]]; then
+if [[ "${SHELL:-}" == */zsh ]]; then
     SHELL_CONFIG="$HOME/.zshrc"
 else
     SHELL_CONFIG="$HOME/.bashrc"
 fi
 
-# Ensure PATH is updated
-if [[ ":$PATH:" != *":$TARGET_DIR:"* ]]; then
-    echo "" >> "$SHELL_CONFIG"
-    echo "# sh-scripts-linux toolkit PATH" >> "$SHELL_CONFIG"
-    echo "export PATH=\"$TARGET_DIR:\$PATH\"" >> "$SHELL_CONFIG"
+touch "$SHELL_CONFIG"
+
+if [[ ":$PATH:" != *":$TARGET_DIR:"* ]] && ! grep -qF "$TARGET_DIR" "$SHELL_CONFIG"; then
+    cat << EOF >> "$SHELL_CONFIG"
+
+# sh-scripts-linux toolkit PATH
+export PATH="$TARGET_DIR:\$PATH"
+EOF
     echo "✔ PATH updated in $SHELL_CONFIG"
 else
     echo "✔ PATH already configured"
 fi
 
-# Configure shell-specific productivity enhancements
 if [[ "$SHELL_CONFIG" == */.bashrc ]]; then
     if ! grep -q "history-search-backward" "$SHELL_CONFIG"; then
         cat << 'EOF' >> "$SHELL_CONFIG"
@@ -99,9 +94,8 @@ EOF
         echo "✔ Configured Bash smart history search"
     fi
 elif [[ "$SHELL_CONFIG" == */.zshrc ]]; then
-    # Setup zsh-autosuggestions
     AUTOSUGGEST_DIR="$HOME/.zsh/zsh-autosuggestions"
-    if [ ! -d "$AUTOSUGGEST_DIR" ]; then
+    if [ ! -d "$AUTOSUGGEST_DIR" ] && command -v git >/dev/null 2>&1; then
         echo "[*] Installing zsh-autosuggestions..."
         git clone https://github.com/zsh-users/zsh-autosuggestions.git "$AUTOSUGGEST_DIR" >/dev/null 2>&1 || true
     fi
@@ -118,7 +112,6 @@ EOF
     fi
 fi
 
-# Configure fastfetch (with neofetch fallback) on terminal startup
 if ! grep -q "sh-scripts-linux: Startup system info" "$SHELL_CONFIG"; then
     cat << 'EOF' >> "$SHELL_CONFIG"
 
@@ -133,11 +126,12 @@ EOF
 fi
 
 # ===============================
-# INSTALL SYSTEM DEPENDENCIES
+# SYSTEM DEPENDENCIES
 # ===============================
 echo ""
 echo "Detecting package manager and installing system dependencies..."
 
+PM=""
 if command -v apt >/dev/null 2>&1; then
     PM="apt"
     sudo apt update
@@ -151,7 +145,6 @@ elif command -v apk >/dev/null 2>&1; then
     PM="apk"
 else
     echo "⚠ Unsupported package manager. Please install dependencies manually."
-    PM=""
 fi
 
 install_pkg() {
@@ -164,11 +157,11 @@ install_pkg() {
 
     echo "  [*] Installing $cmd_name..."
     case "$PM" in
-        apt) sudo apt install -y "$@" ;;
-        dnf) sudo dnf install -y "$@" ;;
-        pacman) sudo pacman -S --noconfirm "$@" ;;
-        zypper) sudo zypper install -y "$@" ;;
-        apk) sudo apk add "$@" ;;
+        apt)    sudo apt install -y "$@" || true ;;
+        dnf)    sudo dnf install -y "$@" || true ;;
+        pacman) sudo pacman -S --noconfirm "$@" || true ;;
+        zypper) sudo zypper install -y "$@" || true ;;
+        apk)    sudo apk add "$@" || true ;;
     esac
 }
 
@@ -214,106 +207,55 @@ install_fetch_tool() {
 }
 
 if [ -n "$PM" ]; then
+    install_pkg ffmpeg ffmpeg
+    install_pkg aria2c aria2
+    install_pkg python3 python3
+    install_pkg pipx pipx
+    install_pkg curl curl
+    install_pkg git git
+
     case "$PM" in
         apt)
-            install_pkg ffmpeg ffmpeg
-            install_pkg aria2c aria2
-            install_pkg python3 python3 python3-pip
-            install_pkg pipx pipx
             install_pkg exiftool libimage-exiftool-perl
             install_pkg gpg gnupg
-            install_pkg curl curl
-            install_pkg git git
-            install_fetch_tool
             ;;
-        dnf)
-            install_pkg ffmpeg ffmpeg
-            install_pkg aria2c aria2
-            install_pkg python3 python3 python3-pip
-            install_pkg pipx pipx
+        dnf|zypper)
             install_pkg exiftool perl-Image-ExifTool
             install_pkg gpg gnupg2
-            install_pkg curl curl
-            install_pkg git git
-            install_fetch_tool
             ;;
-        pacman)
-            install_pkg ffmpeg ffmpeg
-            install_pkg aria2c aria2
-            install_pkg python3 python python-pip
-            install_pkg pipx python-pipx
+        pacman|apk)
             install_pkg exiftool perl-image-exiftool
             install_pkg gpg gnupg
-            install_pkg curl curl
-            install_pkg git git
-            install_fetch_tool
-            ;;
-        zypper)
-            install_pkg ffmpeg ffmpeg
-            install_pkg aria2c aria2
-            install_pkg python3 python3 python3-pip
-            install_pkg pipx python3-pipx
-            install_pkg exiftool perl-Image-ExifTool
-            install_pkg gpg gnupg
-            install_pkg curl curl
-            install_pkg git git
-            install_fetch_tool
-            ;;
-        apk)
-            install_pkg ffmpeg ffmpeg
-            install_pkg aria2c aria2
-            install_pkg python3 python3 py3-pip
-            install_pkg pipx py3-pipx
-            install_pkg exiftool perl-image-exiftool
-            install_pkg gpg gnupg
-            install_pkg curl curl
-            install_pkg git git
-            install_fetch_tool
             ;;
     esac
+
+    install_fetch_tool
 fi
 
-# Ensure pipx PATH
 if command -v pipx >/dev/null 2>&1; then
     pipx ensurepath >/dev/null 2>&1 || true
 fi
 
-# -------------------------------
-# Install yt-dlp (LATEST)
-# -------------------------------
+# ===============================
+# PYTHON TOOLS & LIBRARIES
+# ===============================
 echo ""
-echo "Installing/updating yt-dlp..."
+echo "Installing/updating yt-dlp and instaloader..."
 
-if command -v pipx >/dev/null 2>&1; then
-    pipx install yt-dlp >/dev/null 2>&1 || pipx upgrade yt-dlp || true
-else
-    pip3 install --user -U yt-dlp >/dev/null 2>&1 || true
-fi
+for pkg in yt-dlp instaloader; do
+    if command -v pipx >/dev/null 2>&1; then
+        pipx install "$pkg" >/dev/null 2>&1 || pipx upgrade "$pkg" >/dev/null 2>&1 || true
+    elif command -v pip3 >/dev/null 2>&1; then
+        pip3 install --user -U --break-system-packages "$pkg" >/dev/null 2>&1 || pip3 install --user -U "$pkg" >/dev/null 2>&1 || true
+    fi
+done
 
-# -------------------------------
-# Install instaloader (LATEST)
-# -------------------------------
-echo ""
-echo "Installing/updating instaloader..."
-
-if command -v pipx >/dev/null 2>&1; then
-    pipx install instaloader >/dev/null 2>&1 || pipx upgrade instaloader || true
-else
-    pip3 install --user -U instaloader >/dev/null 2>&1 || true
-fi
-
-# -------------------------------
-# Install Python libraries
-# -------------------------------
 echo ""
 echo "Installing Python packages..."
+if command -v pip3 >/dev/null 2>&1; then
+    pip3 install --user --upgrade --break-system-packages pip lyricsgenius >/dev/null 2>&1 || pip3 install --user --upgrade pip lyricsgenius >/dev/null 2>&1 || true
+fi
 
-pip3 install --user --upgrade pip >/dev/null 2>&1 || true
-pip3 install --user lyricsgenius >/dev/null 2>&1 || true
-
-# ===============================
-# DONE
-# ===============================
 echo ""
 echo "=== Setup Complete ==="
 echo ""
