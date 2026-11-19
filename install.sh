@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TOOLKIT_VERSION="1.1.6"
+TOOLKIT_VERSION="1.1.7"
 echo "sh-scripts-linux toolkit Version: $TOOLKIT_VERSION"
 echo "=== sh-scripts-linux Setup Starting ==="
 
@@ -257,33 +257,41 @@ else
 fi
 
 # -------------------------------
-# Install yt-dlp (Latest from GitHub Releases)
+# Install/update yt-dlp from PyPI (pipx / pip3)
 # -------------------------------
 echo ""
-echo "Installing/updating yt-dlp from GitHub Releases..."
+echo "Installing/updating yt-dlp from PyPI..."
 
-# Remove outdated apt/pipx yt-dlp copies so the GitHub binary takes priority
+# Remove outdated apt yt-dlp package so pipx/pip3 takes priority
 if command -v dpkg >/dev/null 2>&1 && dpkg -s yt-dlp >/dev/null 2>&1; then
     echo "  [*] Removing outdated apt yt-dlp package..."
     sudo apt remove -y yt-dlp >/dev/null 2>&1 || true
 fi
+
 if command -v pipx >/dev/null 2>&1; then
-    pipx uninstall yt-dlp >/dev/null 2>&1 || true
+    pipx install --force "yt-dlp[default]" >/dev/null 2>&1 || pipx upgrade yt-dlp >/dev/null 2>&1 || true
+elif command -v pip3 >/dev/null 2>&1; then
+    pip3 install --user -U --break-system-packages "yt-dlp[default]" >/dev/null 2>&1 || pip3 install --user -U "yt-dlp[default]" >/dev/null 2>&1 || true
 fi
 
-ARCH="$(uname -m)"
-case "$ARCH" in
-    x86_64|amd64)  YTDLP_ASSET="yt-dlp_linux" ;;
-    aarch64|arm64) YTDLP_ASSET="yt-dlp_linux_aarch64" ;;
-    *)             YTDLP_ASSET="yt-dlp" ;;
-esac
+if ! command -v yt-dlp >/dev/null 2>&1 && [ ! -x "$HOME/.local/share/pipx/venvs/yt-dlp/bin/yt-dlp" ]; then
+    echo "  [*] Fallback: downloading lightweight Unix zipimport binary via aria2c/curl..."
+    if command -v aria2c >/dev/null 2>&1; then
+        aria2c -x 8 -s 8 -k 1M --allow-overwrite=true \
+            "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp" \
+            --dir "$TARGET_DIR" -o yt-dlp >/dev/null 2>&1 || true
+    else
+        curl -fsSL "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp" -o "$TARGET_DIR/yt-dlp" || true
+    fi
+    [ -f "$TARGET_DIR/yt-dlp" ] && chmod +x "$TARGET_DIR/yt-dlp"
+fi
 
-YTDLP_URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/$YTDLP_ASSET"
-if curl -fsSL "$YTDLP_URL" -o "$TARGET_DIR/yt-dlp"; then
-    chmod +x "$TARGET_DIR/yt-dlp"
-    echo "  ✔ yt-dlp installed ($("$TARGET_DIR/yt-dlp" --version))"
+if command -v yt-dlp >/dev/null 2>&1; then
+    echo "  ✔ yt-dlp ready ($(yt-dlp --version))"
+elif [ -x "$HOME/.local/share/pipx/venvs/yt-dlp/bin/yt-dlp" ]; then
+    echo "  ✔ yt-dlp installed via pipx ($("$HOME/.local/share/pipx/venvs/yt-dlp/bin/yt-dlp" --version))"
 else
-    echo "  ✖ Failed to download yt-dlp from GitHub"
+    echo "  ✖ Failed to install yt-dlp"
 fi
 
 # ===============================
