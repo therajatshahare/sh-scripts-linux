@@ -9,8 +9,10 @@ BRANCH="main"
 
 INSTALL_URL="https://raw.githubusercontent.com/$REPO_USER/$REPO_NAME/$BRANCH/install.sh"
 
-# Download and run latest installer
-if curl -fsSL "$INSTALL_URL" | bash; then
+tmp_installer="$(mktemp)"
+trap 'rm -f "$tmp_installer"' EXIT
+
+if curl -fsSL "$INSTALL_URL" -o "$tmp_installer" && bash "$tmp_installer" < /dev/tty; then
     echo ""
     echo "✅ sh-scripts-linux toolkit updated successfully"
 else
