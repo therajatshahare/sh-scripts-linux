@@ -7,10 +7,11 @@ echo "=================================================="
 
 TARGET_DIR="$HOME/.local/bin"
 
-# Complete script array matching the installer
+# Complete script array matching install.sh
 SCRIPTS=(
 ytvideo
 vytvideo
+hytvideo
 ytaudio
 showmeta
 showlyrics
@@ -47,27 +48,33 @@ for script in "${SCRIPTS[@]}"; do
 done
 
 # ===============================
-# Remove PATH entry
+# Clean shell configuration
 # ===============================
 echo ""
-echo "Cleaning PATH configuration..."
+echo "Cleaning shell configuration..."
 
 for CONFIG in "$HOME/.bashrc" "$HOME/.zshrc"; do
     if [ -f "$CONFIG" ]; then
-        # Remove both current and legacy signatures
+        # Remove PATH entries added by the toolkit
         sed -i '/# Cmd-Scripts PATH/d' "$CONFIG"
         sed -i '/# sh-scripts-linux toolkit PATH/d' "$CONFIG"
-        sed -i '\|.local/bin|d' "$CONFIG"
+        sed -i '\|export PATH="\$HOME/.local/bin:\$PATH"|d' "$CONFIG"
+        sed -i '\|export PATH="\$TARGET_DIR:\$PATH"|d' "$CONFIG"
+
+        # Remove startup system info & shell enhancements added by install.sh
+        sed -i '/# sh-scripts-linux: Startup system info/,/^fi$/d' "$CONFIG"
+        sed -i '/# sh-scripts-linux: Smart History Search/,/history-search-forward/d' "$CONFIG"
+        sed -i '/# sh-scripts-linux: Zsh Autosuggestions/,/^fi$/d' "$CONFIG"
     fi
 done
 
-echo "  ✔ PATH configuration cleaned"
+echo "  ✔ Shell configuration cleaned"
 
 # ===============================
-# Remove pipx packages (optional)
+# Remove pipx / pip packages (optional)
 # ===============================
 echo ""
-read -r -p "Do you want to remove yt-dlp and instaloader installed via pipx? (y/n): " confirm
+read -r -p "Remove yt-dlp, instaloader, and lyricsgenius? (y/n): " confirm
 
 if [[ "$confirm" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     if command -v pipx >/dev/null 2>&1; then
@@ -75,7 +82,12 @@ if [[ "$confirm" =~ ^([yY][eE][sS]|[yY])$ ]]; then
         pipx uninstall instaloader >/dev/null 2>&1 || true
         echo "  ✔ Removed pipx packages"
     else
-        echo "  ⚠ pipx not found, skipping package removal."
+        echo "  ⚠ pipx not found, skipping pipx removal."
+    fi
+
+    if command -v pip3 >/dev/null 2>&1; then
+        pip3 uninstall -y lyricsgenius >/dev/null 2>&1 || true
+        echo "  ✔ Removed lyricsgenius"
     fi
 fi
 
