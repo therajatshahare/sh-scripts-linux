@@ -162,7 +162,6 @@ get_download_args() {
             "-f" "$format" \
             "--yes-playlist" \
             "--merge-output-format" "mkv" \
-            "--write-subs" \
             "--sub-lang" "en" \
             "--embed-subs" \
             "--ignore-errors" \
@@ -181,7 +180,7 @@ get_download_args() {
     subs=$("${subs_cmd[@]}" 2>/dev/null || true)
 
     local hasRealSub=0
-    if echo "$subs" | grep -qE '^en ' && ! echo "$subs" | grep -q 'auto-generated'; then
+    if echo "$subs" | grep -E '^en([[:space:]]|-)' | grep -qv 'auto-generated'; then
         hasRealSub=1
     fi
 
@@ -191,7 +190,6 @@ get_download_args() {
             "-f" "$format" \
             "--merge-output-format" "mkv" \
             "--sub-lang" "en" \
-            "--write-subs" \
             "--embed-subs" \
             "-o" "$outputDir/$FILENAME.mkv" \
             "$URL"
@@ -260,4 +258,3 @@ if [ $exit_code -ne 0 ]; then
     fi
     exit 1
 fi
-```[cite: 7]
