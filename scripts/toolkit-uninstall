@@ -7,11 +7,9 @@ echo "=================================================="
 
 TARGET_DIR="$HOME/.local/bin"
 
-# Complete script array matching install.sh
 SCRIPTS=(
 ytvideo
 vytvideo
-hytvideo
 ytaudio
 showmeta
 showlyrics
@@ -32,47 +30,52 @@ toolkit-uninstall
 lyrics.py
 )
 
-# ===============================
-# Remove scripts
-# ===============================
 echo ""
 echo "Removing scripts from $TARGET_DIR..."
 
 for script in "${SCRIPTS[@]}"; do
     FILE="$TARGET_DIR/$script"
-
     if [ -f "$FILE" ]; then
         rm -f "$FILE"
         echo "  ✔ Removed $script"
     fi
 done
 
-# ===============================
-# Clean shell configuration
-# ===============================
 echo ""
 echo "Cleaning shell configuration..."
 
-for CONFIG in "$HOME/.bashrc" "$HOME/.zshrc"; do
-    if [ -f "$CONFIG" ]; then
-        # Remove PATH entries added by the toolkit
-        sed -i '/# Cmd-Scripts PATH/d' "$CONFIG"
-        sed -i '/# sh-scripts-linux toolkit PATH/d' "$CONFIG"
-        sed -i '\|export PATH="\$HOME/.local/bin:\$PATH"|d' "$CONFIG"
-        sed -i '\|export PATH="\$TARGET_DIR:\$PATH"|d' "$CONFIG"
+python3 - << 'EOF'
+from pathlib import Path
+import re
 
-        # Remove startup system info & shell enhancements added by install.sh
-        sed -i '/# sh-scripts-linux: Startup system info/,/^fi$/d' "$CONFIG"
-        sed -i '/# sh-scripts-linux: Smart History Search/,/history-search-forward/d' "$CONFIG"
-        sed -i '/# sh-scripts-linux: Zsh Autosuggestions/,/^fi$/d' "$CONFIG"
-    fi
-done
+block_patterns = [
+    r'\n?# sh-scripts-linux: Show system specs on startup\n(?:.*?\n)*?fi\n?',
+    r'\n?# sh-scripts-linux: Startup system info\n(?:.*?\n)*?fi\n?',
+    r'\n?# sh-scripts-linux: Smart History Search[^\n]*\n(?:bind[^\n]*\n)+',
+    r'\n?# sh-scripts-linux: Zsh Autosuggestions\n(?:.*?\n)*?fi\n?',
+    r'\n?# sh-scripts-linux toolkit PATH\n?',
+    r'\n?# Cmd-Scripts PATH\n?',
+]
+
+for name in (".bashrc", ".zshrc"):
+    rc = Path.home() / name
+    if not rc.is_file():
+        continue
+
+    text = rc.read_text()
+    for pat in block_patterns:
+        text = re.sub(pat, '\n', text, flags=re.MULTILINE)
+
+    text = re.sub(r'^export PATH="[^"]*\.local/bin:\$PATH"\n?', '', text, flags=re.MULTILINE)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    if text and not text.endswith('\n'):
+        text += '\n'
+
+    rc.write_text(text)
+EOF
 
 echo "  ✔ Shell configuration cleaned"
 
-# ===============================
-# Remove pipx / pip packages (optional)
-# ===============================
 echo ""
 read -r -p "Remove yt-dlp, instaloader, and lyricsgenius? (y/n): " confirm
 
@@ -91,9 +94,6 @@ if [[ "$confirm" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     fi
 fi
 
-# ===============================
-# Done
-# ===============================
 echo ""
 echo "=================================================="
 echo "✅ sh-scripts-linux toolkit uninstalled successfully"
