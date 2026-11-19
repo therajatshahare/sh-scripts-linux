@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TOOLKIT_VERSION="1.1.5"
+TOOLKIT_VERSION="1.1.6"
 echo "sh-scripts-linux toolkit Version: $TOOLKIT_VERSION"
 echo "=== sh-scripts-linux Setup Starting ==="
 
@@ -244,11 +244,11 @@ echo ""
 echo "Installing/checking deno..."
 
 if command -v deno >/dev/null 2>&1; then
-    echo "  ✔ deno already installed"
+    echo "  ✔ deno already installed ($(deno --version | head -n1))"
 elif [ -x "$HOME/.deno/bin/deno" ]; then
-    echo "  ✔ deno found in ~/.deno/bin"
+    echo "  ✔ deno found in ~/.deno/bin ($("$HOME/.deno/bin/deno" --version | head -n1))"
 else
-    curl -fsSL https://deno.land/install.sh | sh >/dev/null 2>&1 || true
+    curl -fsSL https://deno.land/install.sh | sh -s -- -y >/dev/null 2>&1 || true
     if command -v deno >/dev/null 2>&1 || [ -x "$HOME/.deno/bin/deno" ]; then
         echo "  ✔ deno installed"
     else
@@ -256,19 +256,47 @@ else
     fi
 fi
 
+# -------------------------------
+# Install yt-dlp (Latest from GitHub Releases)
+# -------------------------------
+echo ""
+echo "Installing/updating yt-dlp from GitHub Releases..."
+
+# Remove outdated apt/pipx yt-dlp copies so the GitHub binary takes priority
+if command -v dpkg >/dev/null 2>&1 && dpkg -s yt-dlp >/dev/null 2>&1; then
+    echo "  [*] Removing outdated apt yt-dlp package..."
+    sudo apt remove -y yt-dlp >/dev/null 2>&1 || true
+fi
+if command -v pipx >/dev/null 2>&1; then
+    pipx uninstall yt-dlp >/dev/null 2>&1 || true
+fi
+
+ARCH="$(uname -m)"
+case "$ARCH" in
+    x86_64|amd64)  YTDLP_ASSET="yt-dlp_linux" ;;
+    aarch64|arm64) YTDLP_ASSET="yt-dlp_linux_aarch64" ;;
+    *)             YTDLP_ASSET="yt-dlp" ;;
+esac
+
+YTDLP_URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/$YTDLP_ASSET"
+if curl -fsSL "$YTDLP_URL" -o "$TARGET_DIR/yt-dlp"; then
+    chmod +x "$TARGET_DIR/yt-dlp"
+    echo "  ✔ yt-dlp installed ($("$TARGET_DIR/yt-dlp" --version))"
+else
+    echo "  ✖ Failed to download yt-dlp from GitHub"
+fi
+
 # ===============================
 # PYTHON TOOLS & LIBRARIES
 # ===============================
 echo ""
-echo "Installing/updating yt-dlp and instaloader..."
+echo "Installing/updating instaloader..."
 
-for pkg in yt-dlp instaloader; do
-    if command -v pipx >/dev/null 2>&1; then
-        pipx install "$pkg" >/dev/null 2>&1 || pipx upgrade "$pkg" >/dev/null 2>&1 || true
-    elif command -v pip3 >/dev/null 2>&1; then
-        pip3 install --user -U --break-system-packages "$pkg" >/dev/null 2>&1 || pip3 install --user -U "$pkg" >/dev/null 2>&1 || true
-    fi
-done
+if command -v pipx >/dev/null 2>&1; then
+    pipx install instaloader >/dev/null 2>&1 || pipx upgrade instaloader >/dev/null 2>&1 || true
+elif command -v pip3 >/dev/null 2>&1; then
+    pip3 install --user -U --break-system-packages instaloader >/dev/null 2>&1 || pip3 install --user -U instaloader >/dev/null 2>&1 || true
+fi
 
 echo ""
 echo "Installing Python packages..."
@@ -284,4 +312,5 @@ echo "  source ~/.bashrc  (or ~/.zshrc depending on your shell)"
 echo ""
 echo "Try running:"
 echo "  fastfetch || neofetch"
+echo "  yt-dlp --version"
 echo "  toolkit-help"
