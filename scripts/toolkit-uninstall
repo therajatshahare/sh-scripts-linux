@@ -107,22 +107,17 @@ if [[ "$remove_deno" =~ ^([yY][eE][sS]|[yY])$ ]]; then
 from pathlib import Path
 import re
 
-deno_patterns = [
-    r'^\s*\.\s*"?\$?HOME/?\.deno/env"?\s*\n?',
-    r'^\s*source\s+"?\$?HOME/?\.deno/env"?\s*\n?',
-    r'^\s*source\s+"?[^"\n]*deno\.bash"?\s*\n?',
-    r'^\s*export\s+DENO_INSTALL=[^\n]*\n?',
-    r'^\s*export\s+PATH="[^"]*\.deno/bin:\$PATH"\s*\n?',
-]
+deno_markers = (".deno/env", "deno.bash", ".deno/bin", "DENO_INSTALL")
 
 for name in (".bashrc", ".zshrc"):
     rc = Path.home() / name
     if not rc.is_file():
         continue
-    text = rc.read_text()
-    for pat in deno_patterns:
-        text = re.sub(pat, '', text, flags=re.MULTILINE)
-    text = re.sub(r'\n{3,}', '\n\n', text)
+    lines = [
+        line for line in rc.read_text().splitlines(keepends=True)
+        if not any(marker in line for marker in deno_markers)
+    ]
+    text = re.sub(r'\n{3,}', '\n\n', "".join(lines))
     if text and not text.endswith('\n'):
         text += '\n'
     rc.write_text(text)
