@@ -28,6 +28,7 @@ toolkit-help
 update-scripts
 toolkit-uninstall
 lyrics.py
+yt-dlp
 )
 
 echo ""
@@ -77,7 +78,7 @@ EOF
 echo "  ✔ Shell configuration cleaned"
 
 echo ""
-read -r -p "Remove yt-dlp, instaloader, and lyricsgenius? (y/n): " confirm
+read -r -p "Remove yt-dlp (pipx), instaloader, and lyricsgenius? (y/n): " confirm
 
 if [[ "$confirm" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     if command -v pipx >/dev/null 2>&1; then
@@ -112,6 +113,7 @@ deno_patterns = [
     r'^\s*source\s+"?\$?HOME/?\.deno/env"?\s*\n?',
     r'^\s*source\s+"?[^"\n]*deno\.bash"?\s*\n?',
     r'^\s*export\s+DENO_INSTALL=[^\n]*\n?',
+    r'^\s*export\s+PATH="[^"]*\.deno/bin:\$PATH"\s*\n?',
 ]
 
 for name in (".bashrc", ".zshrc"):
