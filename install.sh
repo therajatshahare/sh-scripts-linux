@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TOOLKIT_VERSION="1.1.2"
+TOOLKIT_VERSION="1.1.3"
 echo "sh-scripts-linux toolkit Version: $TOOLKIT_VERSION"
 echo "=== sh-scripts-linux Setup Starting ==="
 
@@ -105,7 +105,7 @@ elif [[ "$SHELL_CONFIG" == */.zshrc ]]; then
         echo "[*] Installing zsh-autosuggestions..."
         git clone https://github.com/zsh-users/zsh-autosuggestions.git "$AUTOSUGGEST_DIR" >/dev/null 2>&1 || true
     fi
-    
+
     if ! grep -q "zsh-autosuggestions.zsh" "$SHELL_CONFIG"; then
         cat << 'EOF' >> "$SHELL_CONFIG"
 
@@ -118,16 +118,18 @@ EOF
     fi
 fi
 
-# Configure fastfetch on terminal startup
-if ! grep -q "fastfetch" "$SHELL_CONFIG"; then
+# Configure fastfetch (with neofetch fallback) on terminal startup
+if ! grep -q "sh-scripts-linux: Startup system info" "$SHELL_CONFIG"; then
     cat << 'EOF' >> "$SHELL_CONFIG"
 
-# sh-scripts-linux: Show system specs on startup
-if command -v fastfetch &> /dev/null; then
+# sh-scripts-linux: Startup system info
+if command -v fastfetch >/dev/null 2>&1; then
     fastfetch
+elif command -v neofetch >/dev/null 2>&1; then
+    neofetch
 fi
 EOF
-    echo "✔ Configured fastfetch startup display"
+    echo "✔ Configured startup system info display"
 fi
 
 # ===============================
@@ -157,7 +159,7 @@ install_pkg() {
     shift
     if command -v "$cmd_name" >/dev/null 2>&1; then
         echo "  ✔ $cmd_name already installed"
-        return
+        return 0
     fi
 
     echo "  [*] Installing $cmd_name..."
@@ -170,6 +172,47 @@ install_pkg() {
     esac
 }
 
+install_fetch_tool() {
+    if command -v fastfetch >/dev/null 2>&1; then
+        echo "  ✔ fastfetch already installed"
+        return 0
+    fi
+
+    echo "  [*] Installing fastfetch..."
+    case "$PM" in
+        apt)    sudo apt install -y fastfetch >/dev/null 2>&1 || true ;;
+        dnf)    sudo dnf install -y fastfetch >/dev/null 2>&1 || true ;;
+        pacman) sudo pacman -S --noconfirm fastfetch >/dev/null 2>&1 || true ;;
+        zypper) sudo zypper install -y fastfetch >/dev/null 2>&1 || true ;;
+        apk)    sudo apk add fastfetch >/dev/null 2>&1 || true ;;
+    esac
+
+    if command -v fastfetch >/dev/null 2>&1; then
+        echo "  ✔ fastfetch installed"
+        return 0
+    fi
+
+    echo "  ⚠ fastfetch not found in repo; installing neofetch instead..."
+    if command -v neofetch >/dev/null 2>&1; then
+        echo "  ✔ neofetch already installed"
+        return 0
+    fi
+
+    case "$PM" in
+        apt)    sudo apt install -y neofetch >/dev/null 2>&1 || true ;;
+        dnf)    sudo dnf install -y neofetch >/dev/null 2>&1 || true ;;
+        pacman) sudo pacman -S --noconfirm neofetch >/dev/null 2>&1 || true ;;
+        zypper) sudo zypper install -y neofetch >/dev/null 2>&1 || true ;;
+        apk)    sudo apk add neofetch >/dev/null 2>&1 || true ;;
+    esac
+
+    if command -v neofetch >/dev/null 2>&1; then
+        echo "  ✔ neofetch installed"
+    else
+        echo "  ⚠ Neither fastfetch nor neofetch could be installed; skipping."
+    fi
+}
+
 if [ -n "$PM" ]; then
     case "$PM" in
         apt)
@@ -180,8 +223,8 @@ if [ -n "$PM" ]; then
             install_pkg exiftool libimage-exiftool-perl
             install_pkg gpg gnupg
             install_pkg curl curl
-            install_pkg fastfetch fastfetch
             install_pkg git git
+            install_fetch_tool
             ;;
         dnf)
             install_pkg ffmpeg ffmpeg
@@ -191,8 +234,8 @@ if [ -n "$PM" ]; then
             install_pkg exiftool perl-Image-ExifTool
             install_pkg gpg gnupg2
             install_pkg curl curl
-            install_pkg fastfetch fastfetch
             install_pkg git git
+            install_fetch_tool
             ;;
         pacman)
             install_pkg ffmpeg ffmpeg
@@ -202,8 +245,8 @@ if [ -n "$PM" ]; then
             install_pkg exiftool perl-image-exiftool
             install_pkg gpg gnupg
             install_pkg curl curl
-            install_pkg fastfetch fastfetch
             install_pkg git git
+            install_fetch_tool
             ;;
         zypper)
             install_pkg ffmpeg ffmpeg
@@ -213,8 +256,8 @@ if [ -n "$PM" ]; then
             install_pkg exiftool perl-Image-ExifTool
             install_pkg gpg gnupg
             install_pkg curl curl
-            install_pkg fastfetch fastfetch
             install_pkg git git
+            install_fetch_tool
             ;;
         apk)
             install_pkg ffmpeg ffmpeg
@@ -224,8 +267,8 @@ if [ -n "$PM" ]; then
             install_pkg exiftool perl-image-exiftool
             install_pkg gpg gnupg
             install_pkg curl curl
-            install_pkg fastfetch fastfetch
             install_pkg git git
+            install_fetch_tool
             ;;
     esac
 fi
@@ -278,5 +321,5 @@ echo "Restart your terminal or run:"
 echo "  source ~/.bashrc  (or ~/.zshrc depending on your shell)"
 echo ""
 echo "Try running:"
-echo "  fastfetch"
+echo "  fastfetch || neofetch"
 echo "  toolkit-help"
