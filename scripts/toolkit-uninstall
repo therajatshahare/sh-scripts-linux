@@ -95,6 +95,41 @@ if [[ "$confirm" =~ ^([yY][eE][sS]|[yY])$ ]]; then
 fi
 
 echo ""
+read -r -p "Remove Deno (~/.deno and shell lines) if installed? (y/n): " remove_deno
+
+if [[ "$remove_deno" =~ ^([yY][eE][sS]|[yY])$ ]]; then
+    if [ -d "$HOME/.deno" ]; then
+        rm -rf "$HOME/.deno"
+        echo "  ✔ Removed ~/.deno directory"
+    fi
+
+    python3 - << 'EOF'
+from pathlib import Path
+import re
+
+deno_patterns = [
+    r'^\s*\.\s*"?\$?HOME/?\.deno/env"?\s*\n?',
+    r'^\s*source\s+"?\$?HOME/?\.deno/env"?\s*\n?',
+    r'^\s*source\s+"?[^"\n]*deno\.bash"?\s*\n?',
+    r'^\s*export\s+DENO_INSTALL=[^\n]*\n?',
+]
+
+for name in (".bashrc", ".zshrc"):
+    rc = Path.home() / name
+    if not rc.is_file():
+        continue
+    text = rc.read_text()
+    for pat in deno_patterns:
+        text = re.sub(pat, '', text, flags=re.MULTILINE)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    if text and not text.endswith('\n'):
+        text += '\n'
+    rc.write_text(text)
+EOF
+    echo "  ✔ Cleaned Deno shell entries"
+fi
+
+echo ""
 echo "=================================================="
 echo "✅ sh-scripts-linux toolkit uninstalled successfully"
 echo "=================================================="
