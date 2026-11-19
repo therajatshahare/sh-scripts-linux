@@ -28,7 +28,6 @@ toolkit-help
 update-scripts
 toolkit-uninstall
 lyrics.py
-yt-dlp
 )
 
 echo ""
@@ -54,6 +53,7 @@ block_patterns = [
     r'\n?# sh-scripts-linux: Startup system info\n(?:.*?\n)*?fi\n?',
     r'\n?# sh-scripts-linux: Smart History Search[^\n]*\n(?:bind[^\n]*\n)+',
     r'\n?# sh-scripts-linux: Zsh Autosuggestions\n(?:.*?\n)*?fi\n?',
+    r'\n?# sh-scripts-linux toolkit PATH\nexport PATH="[^"]*\.local/bin:\$PATH"\n?',
     r'\n?# sh-scripts-linux toolkit PATH\n?',
     r'\n?# Cmd-Scripts PATH\n?',
 ]
@@ -67,7 +67,6 @@ for name in (".bashrc", ".zshrc"):
     for pat in block_patterns:
         text = re.sub(pat, '\n', text, flags=re.MULTILINE)
 
-    text = re.sub(r'^export PATH="[^"]*\.local/bin:\$PATH"\n?', '', text, flags=re.MULTILINE)
     text = re.sub(r'\n{3,}', '\n\n', text)
     if text and not text.endswith('\n'):
         text += '\n'
@@ -78,20 +77,20 @@ EOF
 echo "  ✔ Shell configuration cleaned"
 
 echo ""
-read -r -p "Remove yt-dlp (pipx), instaloader, and lyricsgenius? (y/n): " confirm
+read -r -p "Remove yt-dlp, instaloader, and lyricsgenius? (y/n): " confirm
 
 if [[ "$confirm" =~ ^([yY][eE][sS]|[yY])$ ]]; then
     if command -v pipx >/dev/null 2>&1; then
         pipx uninstall yt-dlp >/dev/null 2>&1 || true
         pipx uninstall instaloader >/dev/null 2>&1 || true
-        echo "  ✔ Removed pipx packages"
-    else
-        echo "  ⚠ pipx not found, skipping pipx removal."
+        echo "  ✔ Removed pipx packages (yt-dlp, instaloader)"
     fi
 
     if command -v pip3 >/dev/null 2>&1; then
-        pip3 uninstall -y lyricsgenius >/dev/null 2>&1 || true
-        echo "  ✔ Removed lyricsgenius"
+        pip3 uninstall -y yt-dlp instaloader lyricsgenius >/dev/null 2>&1 \
+            || pip3 uninstall -y --break-system-packages yt-dlp instaloader lyricsgenius >/dev/null 2>&1 \
+            || true
+        echo "  ✔ Cleaned pip3 packages if present"
     fi
 fi
 
